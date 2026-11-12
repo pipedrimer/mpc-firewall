@@ -41,17 +41,19 @@ export function TxWorkbench({
   onInspect
 }: TxWorkbenchProps) {
   return (
-    <section className="flex flex-col gap-4 rounded-xl border border-[#1e2935] bg-[#0d1217] p-4">
-      <div className="flex items-center justify-between border-b border-[#1e2935] pb-3">
+    <section className="flex flex-col gap-5 rounded-xl border border-[#DCE0E8] bg-white p-5 shadow-[0_1px_2px_rgba(11,15,23,0.04)]">
+      <div className="flex items-center justify-between border-b border-[#E2E6EE] pb-3.5">
         <div className="flex items-center gap-2">
-          <Terminal className="h-4 w-4 text-[#00ec97]" />
-          <h2 className="text-sm font-semibold text-[#eef2f6]">Unsigned Transaction &amp; Attack Simulator</h2>
+          <Terminal className="h-4 w-4 text-[#1F3CFF]" />
+          <h2 className="text-sm font-bold tracking-tight text-[#0B0F17]">
+            Unsigned Transaction &amp; Attack Simulator
+          </h2>
         </div>
-        <span className="font-mono text-[11px] text-[#8b9bb0]">RLP / ABI / BTC Raw Input</span>
+        <span className="font-mono text-[11px] text-[#525B6C]">RLP / ABI / BTC Raw Input</span>
       </div>
 
-      <div className="space-y-1.5">
-        <p className="text-[11px] font-medium uppercase tracking-wider text-[#8b9bb0]">
+      <div className="space-y-2">
+        <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[#525B6C]">
           1. Select Real EIP-1559 / Bitcoin Scenario (or customize below)
         </p>
         <div className="grid gap-1.5">
@@ -62,23 +64,23 @@ export function TxWorkbench({
                 key={preset.id}
                 type="button"
                 onClick={() => onSelectPreset(preset)}
-                className={`flex items-start justify-between gap-2 rounded-lg border px-3 py-2 text-left text-xs ${
+                className={`flex items-start justify-between gap-2 rounded-lg border px-3.5 py-2.5 text-left text-xs transition-all ${
                   active
-                    ? 'border-[#00ec97]/60 bg-[#131a21] text-[#eef2f6]'
-                    : 'border-[#1e2935] bg-[#090d11] text-[#8b9bb0] hover:border-[#2d3c4e] hover:text-[#eef2f6]'
+                    ? 'border-[#1F3CFF] bg-[#1F3CFF]/[0.04] text-[#0B0F17] shadow-[inset_2px_0_0_#1F3CFF]'
+                    : 'border-[#E2E6EE] bg-[#F8F9FB] text-[#525B6C] hover:border-[#0B0F17]/30 hover:bg-white hover:text-[#0B0F17]'
                 }`}
               >
                 <div className="min-w-0">
-                  <div className="font-medium text-[#eef2f6]">{preset.title}</div>
-                  <div className="mt-0.5 text-[11px] text-[#8b9bb0]">{preset.description}</div>
+                  <div className="font-semibold text-[#0B0F17]">{preset.title}</div>
+                  <div className="mt-0.5 text-[11px] text-[#525B6C]">{preset.description}</div>
                 </div>
                 <span
-                  className={`shrink-0 rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold ${
+                  className={`shrink-0 rounded px-2 py-0.5 font-mono text-[10px] font-semibold ${
                     preset.badge === 'SAFE'
-                      ? 'bg-[#00ec97]/15 text-[#00ec97]'
+                      ? 'bg-[#059669]/10 text-[#059669]'
                       : preset.badge === 'DAO_ESCALATION'
-                        ? 'bg-[#f59e0b]/15 text-[#f59e0b]'
-                        : 'bg-[#f43f5e]/15 text-[#f43f5e]'
+                        ? 'bg-[#D97706]/10 text-[#D97706]'
+                        : 'bg-[#E11D48]/10 text-[#E11D48]'
                   }`}
                 >
                   {preset.badge === 'SAFE' && <ShieldCheck className="mr-1 inline h-3 w-3" />}
@@ -92,15 +94,15 @@ export function TxWorkbench({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 border-t border-[#1e2935] pt-3">
+      <div className="grid grid-cols-1 gap-3.5 border-t border-[#E2E6EE] pt-4">
         <div className="flex items-center gap-3">
-          <label className="text-xs font-medium text-[#8b9bb0]">Target Envelope:</label>
-          <div className="flex rounded-md border border-[#1e2935] bg-[#090d11] p-0.5 text-xs">
+          <label className="text-xs font-medium text-[#525B6C]">Target Envelope:</label>
+          <div className="flex rounded-lg border border-[#DCE0E8] bg-[#F4F5F8] p-0.5 text-xs">
             <button
               type="button"
               onClick={() => onChangeChainKind('evm')}
-              className={`rounded px-2.5 py-1 font-mono ${
-                chainKind === 'evm' ? 'bg-[#1e2935] text-[#00ec97]' : 'text-[#8b9bb0]'
+              className={`rounded-md px-2.5 py-1 font-mono font-medium transition-colors ${
+                chainKind === 'evm' ? 'bg-[#0B0F17] text-white' : 'text-[#525B6C] hover:text-[#0B0F17]'
               }`}
             >
               EVM (RLP)
@@ -108,8 +110,8 @@ export function TxWorkbench({
             <button
               type="button"
               onClick={() => onChangeChainKind('bitcoin')}
-              className={`rounded px-2.5 py-1 font-mono ${
-                chainKind === 'bitcoin' ? 'bg-[#1e2935] text-[#f59e0b]' : 'text-[#8b9bb0]'
+              className={`rounded-md px-2.5 py-1 font-mono font-medium transition-colors ${
+                chainKind === 'bitcoin' ? 'bg-[#0B0F17] text-white' : 'text-[#525B6C] hover:text-[#0B0F17]'
               }`}
             >
               Bitcoin (Raw)
@@ -118,20 +120,20 @@ export function TxWorkbench({
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-[#8b9bb0]">
-            2. Agent Stated Intent (Audited inside NEAR AI TEE)
+          <label className="mb-1 block text-xs font-medium text-[#525B6C]">
+            2. AI Assistant Stated Intent (Audited inside NEAR AI TEE)
           </label>
           <input
             type="text"
             value={agentIntent}
             onChange={(e) => onChangeIntent(e.target.value)}
-            className="w-full rounded-lg border border-[#1e2935] bg-[#090d11] px-3 py-2 text-xs text-[#eef2f6] focus:border-[#00ec97] focus:outline-none"
-            placeholder="Describe what the AI agent claims this foreign-chain transaction does..."
+            className="w-full rounded-lg border border-[#DCE0E8] bg-[#F8F9FB] px-3 py-2 text-xs text-[#0B0F17] focus:border-[#1F3CFF] focus:bg-white focus:outline-none"
+            placeholder="Describe what the AI assistant claims this foreign-chain transaction does..."
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-[#8b9bb0]">
+          <label className="mb-1 block text-xs font-medium text-[#525B6C]">
             3. Raw Unsigned Transaction Hex (Submitted to MpcFirewall Contract)
           </label>
           <textarea
@@ -139,7 +141,7 @@ export function TxWorkbench({
             value={rawUnsignedHex}
             onChange={(e) => onChangeRawHex(e.target.value)}
             spellCheck={false}
-            className="w-full rounded-lg border border-[#1e2935] bg-[#090d11] p-3 font-mono text-[11px] leading-relaxed text-[#eef2f6] focus:border-[#00ec97] focus:outline-none"
+            className="w-full rounded-lg border border-[#DCE0E8] bg-[#F8F9FB] p-3 font-mono text-[11px] leading-relaxed text-[#0B0F17] focus:border-[#1F3CFF] focus:bg-white focus:outline-none"
             placeholder="0x02f8..."
           />
         </div>
@@ -148,7 +150,7 @@ export function TxWorkbench({
           type="button"
           disabled={loading || !rawUnsignedHex.trim()}
           onClick={onInspect}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#00ec97] px-4 py-2.5 text-sm font-semibold text-[#070a0d] hover:bg-[#19f4a6] disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0B0F17] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#1F3CFF] disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Play className="h-4 w-4 fill-current" />
           <span>{loading ? 'Decoding RLP & Evaluating Policy…' : 'Decode, Audit & Verify Before v1.signer'}</span>
@@ -157,4 +159,3 @@ export function TxWorkbench({
     </section>
   );
 }
-

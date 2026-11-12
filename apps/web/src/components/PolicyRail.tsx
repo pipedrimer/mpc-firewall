@@ -26,107 +26,115 @@ export function PolicyRail({
 }: PolicyRailProps) {
   if (!policy) {
     return (
-      <aside className="rounded-xl border border-[#1e2935] bg-[#0d1217] p-4">
-        <p className="text-xs text-[#8b9bb0]">Loading firewall policy…</p>
+      <aside className="rounded-xl border border-[#DCE0E8] bg-white p-5 shadow-[0_1px_2px_rgba(11,15,23,0.04)]">
+        <p className="text-xs text-[#525B6C]">Loading firewall policy…</p>
       </aside>
     );
   }
 
   return (
-    <aside className="flex flex-col gap-4 rounded-xl border border-[#1e2935] bg-[#0d1217] p-4">
-      <div className="flex items-center justify-between border-b border-[#1e2935] pb-3">
+    <aside className="flex flex-col gap-5 rounded-xl border border-[#DCE0E8] bg-white p-5 shadow-[0_1px_2px_rgba(11,15,23,0.04)]">
+      <div className="flex items-center justify-between border-b border-[#E2E6EE] pb-3.5">
         <div className="flex items-center gap-2">
-          <Settings2 className="h-4 w-4 text-[#00ec97]" />
-          <h2 className="text-sm font-semibold text-[#eef2f6]">On-Chain Policy Gate</h2>
+          <Settings2 className="h-4 w-4 text-[#1F3CFF]" />
+          <h2 className="text-sm font-bold tracking-tight text-[#0B0F17]">On-Chain Policy Gate</h2>
         </div>
-        {saving && <span className="font-mono text-[10px] text-[#00ec97]">SAVING…</span>}
+        {saving && <span className="font-mono text-[10px] font-semibold text-[#1F3CFF]">SAVING…</span>}
       </div>
 
-      <div className="rounded-lg border border-[#1e2935] bg-[#131a21] p-3 text-xs">
-        <div className="mb-1.5 flex items-center gap-1.5 font-medium text-[#eef2f6]">
-          <Lock className="h-3.5 w-3.5 text-[#00ec97]" />
+      <div className="rounded-lg border border-[#E2E6EE] bg-[#F4F5F8] p-3.5 text-xs">
+        <div className="mb-1.5 flex items-center gap-1.5 font-semibold text-[#0B0F17]">
+          <Lock className="h-3.5 w-3.5 text-[#1F3CFF]" />
           <span>Why Function Call Keys Aren&apos;t Enough</span>
         </div>
-        <p className="leading-relaxed text-[#8b9bb0]">
+        <p className="leading-relaxed text-[#525B6C]">
           NEAR Function Call Keys cannot inspect the 32-byte hash sent to{' '}
-          <code className="font-mono text-[#eef2f6]">{policy.mpcSignerContractId}</code>.{' '}
-          <code className="font-mono text-[#00ec97]">{policy.firewallContractId}</code> owns path{' '}
-          <code className="font-mono text-[#eef2f6]">{policy.derivationPath}</code> and parses raw RLP + ABI bytes
-          before computing <code className="font-mono text-[#eef2f6]">keccak256</code>.
+          <code className="font-mono text-[#0B0F17]">{policy.mpcSignerContractId}</code>.{' '}
+          <code className="font-mono font-semibold text-[#1F3CFF]">{policy.firewallContractId}</code> owns path{' '}
+          <code className="font-mono text-[#0B0F17]">{policy.derivationPath}</code> and parses raw RLP + ABI bytes
+          before computing <code className="font-mono text-[#0B0F17]">keccak256</code>.
         </p>
       </div>
 
-      <div className="space-y-2.5 text-xs">
-        <div className="flex items-center justify-between rounded-lg border border-[#1e2935] bg-[#090d11] px-3 py-2">
-          <span className="text-[#8b9bb0]">Allowed EVM Chain IDs</span>
-          <span className="font-mono text-[#eef2f6]">{policy.allowedChainIds.join(', ')}</span>
+      <div className="space-y-2 text-xs">
+        <div className="flex items-center justify-between rounded-lg border border-[#E2E6EE] bg-[#F8F9FB] px-3 py-2.5">
+          <span className="text-[#525B6C]">Allowed EVM Chain IDs</span>
+          <span className="font-mono font-medium text-[#0B0F17]">{policy.allowedChainIds.join(', ')}</span>
         </div>
-        <div className="flex items-center justify-between rounded-lg border border-[#1e2935] bg-[#090d11] px-3 py-2">
-          <span className="text-[#8b9bb0]">Autonomous Token Cap</span>
-          <span className="font-mono tabular-nums text-[#00ec97]">{formatUnits6(policy.autoApproveTokenUnits)}</span>
+        <div className="flex items-center justify-between rounded-lg border border-[#E2E6EE] bg-[#F8F9FB] px-3 py-2.5">
+          <span className="text-[#525B6C]">Autonomous Token Cap</span>
+          <span className="font-mono font-semibold tabular-nums text-[#059669]">
+            {formatUnits6(policy.autoApproveTokenUnits)}
+          </span>
         </div>
-        <div className="flex items-center justify-between rounded-lg border border-[#1e2935] bg-[#090d11] px-3 py-2">
-          <span className="text-[#8b9bb0]">Hard Max Token Cap</span>
-          <span className="font-mono tabular-nums text-[#eef2f6]">{formatUnits6(policy.maxTokenAmountUnits)}</span>
+        <div className="flex items-center justify-between rounded-lg border border-[#E2E6EE] bg-[#F8F9FB] px-3 py-2.5">
+          <span className="text-[#525B6C]">Hard Max Token Cap</span>
+          <span className="font-mono font-medium tabular-nums text-[#0B0F17]">
+            {formatUnits6(policy.maxTokenAmountUnits)}
+          </span>
         </div>
-        <div className="flex items-center justify-between rounded-lg border border-[#1e2935] bg-[#090d11] px-3 py-2">
-          <span className="text-[#8b9bb0]">Max Bitcoin Output</span>
-          <span className="font-mono tabular-nums text-[#eef2f6]">{Number(policy.maxBtcOutputSats).toLocaleString()} sats</span>
+        <div className="flex items-center justify-between rounded-lg border border-[#E2E6EE] bg-[#F8F9FB] px-3 py-2.5">
+          <span className="text-[#525B6C]">Max Bitcoin Output</span>
+          <span className="font-mono font-medium tabular-nums text-[#0B0F17]">
+            {Number(policy.maxBtcOutputSats).toLocaleString()} sats
+          </span>
         </div>
-        <div className="flex items-center justify-between rounded-lg border border-[#1e2935] bg-[#090d11] px-3 py-2">
-          <span className="text-[#8b9bb0]">Trezu / SputnikDAO</span>
-          <span className="max-w-[165px] truncate font-mono text-[#f59e0b]" title={policy.daoAccount}>
+        <div className="flex items-center justify-between rounded-lg border border-[#E2E6EE] bg-[#F8F9FB] px-3 py-2.5">
+          <span className="text-[#525B6C]">Trezu / SputnikDAO</span>
+          <span className="max-w-[165px] truncate font-mono font-medium text-[#D97706]" title={policy.daoAccount}>
             {policy.daoAccount}
           </span>
         </div>
       </div>
 
-      <div className="space-y-2 border-t border-[#1e2935] pt-3">
-        <p className="text-[11px] font-medium uppercase tracking-wider text-[#8b9bb0]">Active Security Switches</p>
+      <div className="space-y-2 border-t border-[#E2E6EE] pt-4">
+        <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[#525B6C]">
+          Active Security Switches
+        </p>
 
-        <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#1e2935] bg-[#131a21] px-3 py-2 text-xs">
-          <span className="text-[#eef2f6]">Block Unlimited Approvals</span>
+        <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E2E6EE] bg-[#F8F9FB] px-3 py-2.5 text-xs transition-colors hover:border-[#0B0F17]/30">
+          <span className="font-medium text-[#0B0F17]">Block Unlimited Approvals</span>
           <input
             type="checkbox"
             checked={!policy.allowUnlimitedApprovals}
             onChange={(e) => onToggleRule({ allowUnlimitedApprovals: !e.target.checked })}
-            className="h-4 w-4 accent-[#00ec97]"
+            className="h-4 w-4 accent-[#1F3CFF]"
           />
         </label>
 
-        <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#1e2935] bg-[#131a21] px-3 py-2 text-xs">
-          <span className="text-[#eef2f6]">Block NFT setApprovalForAll</span>
+        <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E2E6EE] bg-[#F8F9FB] px-3 py-2.5 text-xs transition-colors hover:border-[#0B0F17]/30">
+          <span className="font-medium text-[#0B0F17]">Block NFT setApprovalForAll</span>
           <input
             type="checkbox"
             checked={!policy.allowSetApprovalForAll}
             onChange={(e) => onToggleRule({ allowSetApprovalForAll: !e.target.checked })}
-            className="h-4 w-4 accent-[#00ec97]"
+            className="h-4 w-4 accent-[#1F3CFF]"
           />
         </label>
 
-        <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#1e2935] bg-[#131a21] px-3 py-2 text-xs">
-          <span className="text-[#eef2f6]">Strict Known ABI Selectors</span>
+        <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E2E6EE] bg-[#F8F9FB] px-3 py-2.5 text-xs transition-colors hover:border-[#0B0F17]/30">
+          <span className="font-medium text-[#0B0F17]">Strict Known ABI Selectors</span>
           <input
             type="checkbox"
             checked={!policy.allowUnknownSelectors}
             onChange={(e) => onToggleRule({ allowUnknownSelectors: !e.target.checked })}
-            className="h-4 w-4 accent-[#00ec97]"
+            className="h-4 w-4 accent-[#1F3CFF]"
           />
         </label>
 
-        <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#1e2935] bg-[#131a21] px-3 py-2 text-xs">
-          <span className="text-[#eef2f6]">NEAR AI TEE Risk Co-Audit</span>
+        <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E2E6EE] bg-[#F8F9FB] px-3 py-2.5 text-xs transition-colors hover:border-[#0B0F17]/30">
+          <span className="font-medium text-[#0B0F17]">NEAR AI TEE Risk Co-Audit</span>
           <input
             type="checkbox"
             checked={policy.requireTeeRiskCheck}
             onChange={(e) => onToggleRule({ requireTeeRiskCheck: e.target.checked })}
-            className="h-4 w-4 accent-[#00ec97]"
+            className="h-4 w-4 accent-[#1F3CFF]"
           />
         </label>
 
         {adminAuthEnabled && (
           <div className="pt-2">
-            <label className="mb-1 block text-[11px] font-medium text-[#f59e0b]">
+            <label className="mb-1 block text-[11px] font-semibold text-[#D97706]">
               Admin Token Required (x-admin-token)
             </label>
             <input
@@ -134,7 +142,7 @@ export function PolicyRail({
               value={adminToken}
               onChange={(e) => onChangeAdminToken(e.target.value)}
               placeholder="Enter MPC_FIREWALL_ADMIN_TOKEN…"
-              className="w-full rounded-lg border border-[#f59e0b]/40 bg-[#090d11] px-2.5 py-1.5 font-mono text-xs text-[#eef2f6] focus:border-[#00ec97] focus:outline-none"
+              className="w-full rounded-lg border border-[#D97706]/40 bg-white px-2.5 py-1.5 font-mono text-xs text-[#0B0F17] focus:border-[#1F3CFF] focus:outline-none"
             />
           </div>
         )}
@@ -142,4 +150,3 @@ export function PolicyRail({
     </aside>
   );
 }
-

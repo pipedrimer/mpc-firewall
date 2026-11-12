@@ -10,37 +10,37 @@ interface ProofInspectorProps {
 
 function CallNode({ call }: { call: EvmDecodedCall }) {
   return (
-    <div className="rounded-md border border-[#1e2935] bg-[#090d11] p-2.5 font-mono text-[11px]">
+    <div className="rounded-lg border border-[#DCE0E8] bg-white p-2.5 font-mono text-[11px]">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="font-semibold text-[#eef2f6]">
+        <span className="font-semibold text-[#0B0F17]">
           depth={call.depth} • {call.action}
         </span>
-        <span className="rounded bg-[#131a21] px-1.5 py-0.5 text-[#8b9bb0]">selector {call.selector}</span>
+        <span className="rounded bg-[#F4F5F8] px-1.5 py-0.5 text-[#525B6C]">selector {call.selector}</span>
       </div>
-      <div className="mt-1.5 space-y-0.5 text-[11px] text-[#8b9bb0]">
+      <div className="mt-1.5 space-y-0.5 text-[11px] text-[#525B6C]">
         {call.recipient && (
           <div>
-            recipient: <span className="text-[#eef2f6]">{call.recipient}</span>
+            recipient: <span className="text-[#0B0F17]">{call.recipient}</span>
           </div>
         )}
         {call.spenderOrOperator && (
           <div>
-            spender/operator: <span className="text-[#eef2f6]">{call.spenderOrOperator}</span>
+            spender/operator: <span className="text-[#0B0F17]">{call.spenderOrOperator}</span>
           </div>
         )}
         {call.tokenAmount && (
           <div>
-            amount (base units): <span className="text-[#f59e0b]">{call.tokenAmount}</span>
+            amount (base units): <span className="font-semibold text-[#D97706]">{call.tokenAmount}</span>
           </div>
         )}
         {call.approvedBool !== undefined && (
           <div>
-            approved: <span className="text-[#f43f5e]">{String(call.approvedBool)}</span>
+            approved: <span className="font-semibold text-[#E11D48]">{String(call.approvedBool)}</span>
           </div>
         )}
       </div>
       {call.nestedCalls.length > 0 && (
-        <div className="mt-2 space-y-2 border-l-2 border-[#f59e0b]/40 pl-3">
+        <div className="mt-2 space-y-2 border-l-2 border-[#1F3CFF]/40 pl-3">
           {call.nestedCalls.map((child, idx) => (
             <CallNode key={`${child.selector}-${idx}`} call={child} />
           ))}
@@ -81,10 +81,10 @@ export function ProofInspector({ record }: ProofInspectorProps) {
 
   if (!record) {
     return (
-      <aside className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[#1e2935] bg-[#0d1217] p-8 text-center">
-        <EyeOff className="mb-3 h-8 w-8 text-[#8b9bb0]" />
-        <h3 className="text-sm font-semibold text-[#eef2f6]">No Transaction Inspected Yet</h3>
-        <p className="mt-1 max-w-xs text-xs text-[#8b9bb0]">
+      <aside className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[#DCE0E8] bg-white p-8 text-center">
+        <EyeOff className="mb-3 h-8 w-8 text-[#525B6C]" />
+        <h3 className="text-sm font-bold text-[#0B0F17]">No Transaction Inspected Yet</h3>
+        <p className="mt-1 max-w-xs text-xs text-[#525B6C]">
           Run any preset scenario or paste raw unsigned EVM/Bitcoin hex on the left to inspect the RLP decode, ABI
           calldata tree, TEE audit, and MPC dispatch decision.
         </p>
@@ -95,34 +95,34 @@ export function ProofInspector({ record }: ProofInspectorProps) {
   const { decision, decoded, teeAudit, mpcDispatch, daoProposalPayload } = record;
 
   return (
-    <aside className="flex flex-col gap-3.5 rounded-xl border border-[#1e2935] bg-[#0d1217] p-4">
+    <aside className="flex flex-col gap-4 rounded-xl border border-[#DCE0E8] bg-white p-5 shadow-[0_1px_2px_rgba(11,15,23,0.04)]">
       {/* Verdict Banner */}
       <div
         className={`rounded-lg border p-3.5 ${
           decision.outcome === 'APPROVED_FOR_MPC_SIGN'
-            ? 'border-[#00ec97]/40 bg-[#00ec97]/10'
+            ? 'border-[#059669]/30 bg-[#059669]/[0.06]'
             : decision.outcome === 'ESCALATE_TO_DAO'
-              ? 'border-[#f59e0b]/40 bg-[#f59e0b]/10'
-              : 'border-[#f43f5e]/40 bg-[#f43f5e]/10'
+              ? 'border-[#D97706]/30 bg-[#D97706]/[0.06]'
+              : 'border-[#E11D48]/30 bg-[#E11D48]/[0.06]'
         }`}
       >
         <div className="flex items-center gap-2">
-          {decision.outcome === 'APPROVED_FOR_MPC_SIGN' && <CheckCircle2 className="h-5 w-5 text-[#00ec97]" />}
-          {decision.outcome === 'ESCALATE_TO_DAO' && <Landmark className="h-5 w-5 text-[#f59e0b]" />}
-          {decision.outcome === 'BLOCKED' && <AlertOctagon className="h-5 w-5 text-[#f43f5e]" />}
-          <span className="font-mono text-xs font-bold tracking-wide text-[#eef2f6]">{decision.outcome}</span>
+          {decision.outcome === 'APPROVED_FOR_MPC_SIGN' && <CheckCircle2 className="h-5 w-5 text-[#059669]" />}
+          {decision.outcome === 'ESCALATE_TO_DAO' && <Landmark className="h-5 w-5 text-[#D97706]" />}
+          {decision.outcome === 'BLOCKED' && <AlertOctagon className="h-5 w-5 text-[#E11D48]" />}
+          <span className="font-mono text-xs font-bold tracking-wide text-[#0B0F17]">{decision.outcome}</span>
         </div>
-        <ul className="mt-2 space-y-1 text-xs text-[#eef2f6]">
+        <ul className="mt-2 space-y-1 text-xs text-[#0B0F17]">
           {decision.reasons.map((r, i) => (
             <li key={i}>• {r}</li>
           ))}
         </ul>
         {decision.codes.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
             {decision.codes.map((c) => (
               <span
                 key={c}
-                className="rounded bg-[#070a0d]/80 px-1.5 py-0.5 font-mono text-[10px] text-[#eef2f6]"
+                className="rounded border border-[#DCE0E8] bg-white px-2 py-0.5 font-mono text-[10px] font-semibold text-[#0B0F17]"
               >
                 {c}
               </span>
@@ -132,38 +132,38 @@ export function ProofInspector({ record }: ProofInspectorProps) {
       </div>
 
       {/* Blind-Sign Comparison */}
-      <div className="rounded-lg border border-[#1e2935] bg-[#131a21] p-3 text-xs">
-        <div className="font-medium text-[#eef2f6]">What v1.signer Alone Sees vs. MpcFirewall</div>
-        <div className="mt-1.5 font-mono text-[11px] text-[#8b9bb0]">
-          Opaque 32B Digest: <span className="break-all text-[#f59e0b]">{decoded.sighashPayloadHex}</span>
+      <div className="rounded-lg border border-[#E2E6EE] bg-[#F8F9FB] p-3.5 text-xs">
+        <div className="font-semibold text-[#0B0F17]">What v1.signer Alone Sees vs. MpcFirewall</div>
+        <div className="mt-1.5 font-mono text-[11px] text-[#525B6C]">
+          Opaque 32B Digest: <span className="break-all font-medium text-[#1F3CFF]">{decoded.sighashPayloadHex}</span>
         </div>
         {decoded.kind === 'evm' ? (
-          <div className="mt-2 space-y-1.5">
-            <div className="grid grid-cols-2 gap-2 font-mono text-[11px] text-[#8b9bb0]">
+          <div className="mt-2.5 space-y-2">
+            <div className="grid grid-cols-2 gap-2 font-mono text-[11px] text-[#525B6C]">
               <div>
-                type: <span className="text-[#eef2f6]">{decoded.txType}</span>
+                type: <span className="text-[#0B0F17]">{decoded.txType}</span>
               </div>
               <div>
-                chainId: <span className="text-[#eef2f6]">{decoded.chainId}</span>
+                chainId: <span className="text-[#0B0F17]">{decoded.chainId}</span>
               </div>
               <div className="col-span-2 truncate">
-                to: <span className="text-[#eef2f6]">{decoded.to}</span>
+                to: <span className="text-[#0B0F17]">{decoded.to}</span>
               </div>
               <div className="col-span-2">
-                valueWei: <span className="text-[#eef2f6]">{decoded.valueWei}</span>
+                valueWei: <span className="text-[#0B0F17]">{decoded.valueWei}</span>
               </div>
             </div>
             <CallNode call={decoded.rootCall} />
           </div>
         ) : (
-          <div className="mt-2 space-y-1.5 font-mono text-[11px]">
-            <div className="text-[#8b9bb0]">
+          <div className="mt-2.5 space-y-1.5 font-mono text-[11px]">
+            <div className="text-[#525B6C]">
               version={decoded.version} • segwit={String(decoded.isSegwit)} • totalSats=
-              <span className="text-[#f59e0b]">{decoded.totalOutputSats}</span>
+              <span className="font-semibold text-[#D97706]">{decoded.totalOutputSats}</span>
             </div>
             {decoded.outputs.map((o) => (
-              <div key={o.index} className="rounded border border-[#1e2935] bg-[#090d11] p-2 text-[#8b9bb0]">
-                out[{o.index}] {o.scriptType} • <span className="text-[#eef2f6]">{o.valueSats} sats</span>
+              <div key={o.index} className="rounded border border-[#DCE0E8] bg-white p-2 text-[#525B6C]">
+                out[{o.index}] {o.scriptType} • <span className="font-semibold text-[#0B0F17]">{o.valueSats} sats</span>
                 <div className="truncate text-[10px]">script: {o.scriptPubKeyHex}</div>
               </div>
             ))}
@@ -173,18 +173,18 @@ export function ProofInspector({ record }: ProofInspectorProps) {
 
       {/* TEE Co-Audit */}
       {teeAudit && (
-        <div className="rounded-lg border border-[#1e2935] bg-[#131a21] p-3 text-xs">
+        <div className="rounded-lg border border-[#E2E6EE] bg-[#F8F9FB] p-3.5 text-xs">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 font-medium text-[#eef2f6]">
-              <Cpu className="h-3.5 w-3.5 text-[#00ec97]" />
+            <div className="flex items-center gap-1.5 font-semibold text-[#0B0F17]">
+              <Cpu className="h-3.5 w-3.5 text-[#1F3CFF]" />
               <span>NEAR AI TEE Intent Audit</span>
             </div>
-            <span className="rounded bg-[#00ec97]/15 px-1.5 py-0.5 font-mono text-[10px] text-[#00ec97]">
+            <span className="rounded bg-[#059669]/10 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-[#059669]">
               {teeAudit.signatureVerified ? 'SIG VERIFIED' : 'UNVERIFIED'}
             </span>
           </div>
-          <p className="mt-1.5 text-[#8b9bb0]">{teeAudit.summary}</p>
-          <div className="mt-2 font-mono text-[10px] text-[#8b9bb0]">
+          <p className="mt-1.5 text-[#525B6C]">{teeAudit.summary}</p>
+          <div className="mt-2 font-mono text-[10px] text-[#525B6C]">
             mode={teeAudit.mode} • risk={teeAudit.riskLevel} • nonce={teeAudit.nonce.slice(0, 12)}…
           </div>
         </div>
@@ -192,40 +192,40 @@ export function ProofInspector({ record }: ProofInspectorProps) {
 
       {/* Dispatch OR DAO Proposal Payload */}
       {mpcDispatch && (
-        <div className="rounded-lg border border-[#00ec97]/30 bg-[#090d11] p-3">
-          <div className="mb-1.5 font-mono text-[11px] font-semibold text-[#00ec97]">
+        <div className="rounded-lg border border-[#059669]/30 bg-[#059669]/[0.04] p-3.5">
+          <div className="mb-1.5 font-mono text-[11px] font-semibold text-[#059669]">
             Authorized Cross-Contract Dispatch ({mpcDispatch.firewallContractMethod} → {mpcDispatch.signerContractId})
           </div>
-          <pre className="max-h-40 overflow-auto font-mono text-[10px] text-[#eef2f6]">
+          <pre className="max-h-40 overflow-auto font-mono text-[10px] text-[#0B0F17]">
             {JSON.stringify(mpcDispatch, null, 2)}
           </pre>
         </div>
       )}
 
       {daoProposalPayload && (
-        <div className="rounded-lg border border-[#f59e0b]/30 bg-[#090d11] p-3">
-          <div className="mb-1.5 font-mono text-[11px] font-semibold text-[#f59e0b]">
+        <div className="rounded-lg border border-[#D97706]/30 bg-[#D97706]/[0.04] p-3.5">
+          <div className="mb-1.5 font-mono text-[11px] font-semibold text-[#D97706]">
             Generated Trezu / SputnikDAO Multisig Proposal ({daoProposalPayload.contractId})
           </div>
-          <pre className="max-h-40 overflow-auto font-mono text-[10px] text-[#eef2f6]">
+          <pre className="max-h-40 overflow-auto font-mono text-[10px] text-[#0B0F17]">
             {JSON.stringify(daoProposalPayload, null, 2)}
           </pre>
         </div>
       )}
 
       {/* Live NEAR Intents Confidential Quote Check */}
-      <div className="border-t border-[#1e2935] pt-3">
+      <div className="border-t border-[#E2E6EE] pt-3.5">
         <button
           type="button"
           onClick={handlePreviewIntents}
           disabled={quoteLoading}
-          className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#1e2935] bg-[#131a21] px-3 py-2 text-xs font-medium text-[#eef2f6] hover:border-[#00ec97]/50 disabled:opacity-50"
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#DCE0E8] bg-[#F8F9FB] px-3 py-2.5 text-xs font-semibold text-[#0B0F17] transition-colors hover:border-[#0B0F17]/40 hover:bg-white disabled:opacity-50"
         >
-          <ArrowRightLeft className="h-3.5 w-3.5 text-[#00ec97]" />
+          <ArrowRightLeft className="h-3.5 w-3.5 text-[#1F3CFF]" />
           <span>{quoteLoading ? 'Querying 1Click API…' : 'Preview Confidential Intents Treasury Refuel Quote'}</span>
         </button>
         {quoteOutput && (
-          <pre className="mt-2 max-h-44 overflow-auto rounded-lg border border-[#1e2935] bg-[#090d11] p-2.5 font-mono text-[10px] text-[#8b9bb0]">
+          <pre className="mt-2 max-h-44 overflow-auto rounded-lg border border-[#DCE0E8] bg-[#F8F9FB] p-2.5 font-mono text-[10px] text-[#525B6C]">
             {quoteOutput}
           </pre>
         )}
@@ -233,4 +233,3 @@ export function ProofInspector({ record }: ProofInspectorProps) {
     </aside>
   );
 }
-

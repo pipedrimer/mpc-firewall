@@ -1,100 +1,91 @@
-# MpcFirewall Localhost Demo Guide (`http://localhost:3000`)
+# How to Demo MpcFirewall on Localhost (`http://localhost:3000`)
 
-This guide explains the new **Interactive 3D Visual Console** and gives you a **step-by-step 60–90 second click-and-talk recording script** for your hackathon demo.
-
----
-
-## 1. Before You Hit Record
-
-1. The app is running live at **`http://localhost:3000`**.
-2. Open `http://localhost:3000` in your browser.
-3. You will notice the new **Console View Mode Switcher** at the top:
-   - **`✨ Visual Story & Attack Simulator`** (Active by default — designed for video recordings & high-impact presentations)
-   - **`🔬 Deep Protocol & Policy Inspector`** (The low-level developer view for hardcore security audits)
-4. Click **`Reset State`** in the top hero bar before recording so **Daily Assistant Spend** starts cleanly at `0.00 / 1000.00 USDC` and the inspection gates start fresh.
-
-> **Tip:** MpcFirewall has built-in **replay protection**. If you click the same scenario twice without resetting, the second attempt is rejected as an exact replay. Click **`Reset State`** anytime to restart clean.
+This guide walks you through the **Awwwards-Grade Interactive X-Ray Studio** at `http://localhost:3000` so you can deliver a clear, high-impact 2-minute live demo for judges—whether they are non-technical investors or core protocol engineers.
 
 ---
 
-## 2. Understanding the New Visual Interface (Plain-English Map)
+## 1. Starting the Local Demo
 
-The interface is organized into **3 intuitive visual stages**:
+Your server is already running at:
+👉 **`http://localhost:3000`**
 
-### Stage 1: One-Click Scenario & Attack Sandbox (Interactive 3D Cards)
-Seven interactive cards with tactile 3D hover effects, risk badges, and emoji icons:
-- ☕ **1. Safe $25 Assistant Errand** (`Base USDC` • `Safe`): Routine vendor bill.
-- 💣 **2. The Infinite Blank Check** (`Base USDC` • `Critical Attack`): Prompt-injected agent tries to sign `ERC-20 approve(drainer, MaxUint256)`.
-- 🪆 **3. The Trojan Nesting Doll** (`Base Router` • `High Attack`): Smuggles a hidden drain inside a nested `multicall(bytes[])` bundle.
-- ⛓️ **4. Wrong-Chain Trap** (`Ethereum Mainnet` • `Attack`): Encodes chain ID 1 while claiming to be on Base.
-- 🖼️ **5. Blanket NFT Drainage** (`Base NFT` • `Attack`): Sneaks in `setApprovalForAll(true)`.
-- 🏛️ **6. $250 Team Milestone** (`Base USDC` • `DAO Escalation`): Safe transaction above the $100 auto-cap that escalates to human vote (`Trezu / SputnikDAO`).
-- ₿ **7. Bitcoin Treasury Hijack** (`Bitcoin Raw` • `Attack`): Redirects 250,000 sats to an unapproved Bitcoin script.
+*(If you ever restart your computer, open a terminal in this folder and run `pnpm start` or `pnpm dev`.)*
 
-### Stage 2: Live Airport X-Ray Inspection Belt (The 4 Security Gates)
-Shows your AI Assistant's transaction traveling through 4 glowing inspection chambers:
-- **Gate 1 (AI Assistant Intent):** Displays what the AI assistant claims it is doing and the target network.
-- **Gate 2 (On-Chain X-Ray Decoder):** Unwraps raw transaction bytes and nested multicalls up to depth 3 in Rust Wasm.
-- **Gate 3 (Private TEE Lie Detector):** Confidential NEAR AI Cloud audit verifying that the assistant's stated reason matches the decoded bytecode.
-- **Gate 4 (Policy & Vault Stamp):** Enforces spending limits, daily budgets, and prepares the cross-contract call to `v1.signer`.
-- **Action Button:** Big glowing button **`Run Inspection & Intercept Attacks`**.
-
-### Stage 3: The "What Happened to Your Treasury" Verdict (Shock-Value Comparison)
-Two side-by-side comparison cards:
-- **🔴 Without MpcFirewall (Current NEAR Chain Signatures):**
-  - Shows what `v1.signer` alone sees: an unreadable 32-byte hash (`0x7a2d40fdb3...`).
-  - Displays the catastrophic real-world outcome: **`💀 $142,500 USDC DRAINED`** (wallet drained blindfolded).
-- **🟢 With MpcFirewall (Zero-Blind-Signing Protected Flow):**
-  - Shows our contract opening the bytes on-chain.
-  - Displays the protected result: **`🛡️ $0.00 Lost — Intercepted at $0`**.
-
-### Deep Protocol Proof (Collapsible Drawer at the Bottom)
-Click **`🔬 Deep Cryptographic Disassembly & On-Chain Verification Proof`** to expand:
-- The full unwrapped AST tree (`depth=0`, `depth=1`).
-- The verified NEAR AI TEE signature badge.
-- The exact cross-contract Promise payload sent to `v1.signer-prod.testnet` or SputnikDAO.
-- The **`Preview Confidential Intents Treasury Refuel Quote`** button.
+When you open `http://localhost:3000`, the app defaults to **Interactive X-Ray Studio** mode—designed with a **Swiss Architectural Alabaster + Deep Obsidian + Optical Cobalt (`#1F3CFF`)** palette, custom editorial illustrations, a real-time 60fps 3D transaction payload cube, and an interactive **Optical X-Ray Lens** slider.
 
 ---
 
-## 3. Your 60–90 Second Demo Recording Script
+## 2. Understanding the Layout (Top to Bottom)
 
-Start on **`http://localhost:3000`** in **Visual Story Mode** (click **`Reset State`** once):
+### A. Sticky Architectural Header Bar
+- **Brand Mark (`MpcFirewall // v1.signer-prod.testnet`)**: Shows live status of your on-chain firewall gateway.
+- **Center Mode Switcher Pill**:
+  - **Interactive X-Ray Studio** *(Default)*: Visual storytelling, draggable X-Ray lens, plain-English assistant claims vs. hidden transaction payloads, and one-click scenario strip (`01`–`07`).
+  - **Protocol Inspector**: 3-column engineering workbench for inspecting raw RLP hex, toggling live security policy switches, and testing stateful replay protection.
+- **Daily Allowance Meter**: Tracks how much of your AI assistant's autonomous daily spending cap (`$1,000 USDC`) has been used (`$25 / $1,000 USDC`).
+- **Probe `v1.signer-prod.testnet`**: Queries live NEAR Testnet RPC to fetch the active threshold root public key (`secp256k1:...`).
+- **Reset State**: Resets the daily spending counter and replay-protection history back to a clean slate before you start your pitch.
 
-### 0:00 – 0:15 | Introduction & Live NEAR Probe
-- **Click:** **`Probe v1.signer-prod.testnet`** in the top hero bar (updates to `MPC Root Key: secp256k1:...`).
-- **Say:** *"This is MpcFirewall. When an AI assistant controls multi-chain crypto on NEAR, Chain Signatures only sees an opaque 32-byte hash. If the assistant gets prompt-injected, existing locks are blindfolded. MpcFirewall is the airport X-ray scanner that inspects the raw transaction before NEAR's signing vault ever signs."*
+---
 
-### 0:15 – 0:30 | Scenario 1: Routine $25 Assistant Errand (Green Lane)
-- **Click card:** **`1. Compliant Base USDC Vendor Payout (25 USDC)`**.
-- **Click:** **`Run Inspection & Intercept Attacks`**.
-- **Point to:**
-  1. Gate 4 turns green (`APPROVED_FOR_MPC_SIGN`).
-  2. Right card shows **`$25.00 USDC Authorized & Stamped Safely`**.
-  3. Top bar **Daily Spend** counter advances to **`25.00 / 1000.00 USDC`**.
-- **Say:** *"First, a routine errand: our AI assistant pays a $25 invoice. MpcFirewall unwraps the raw bytes, confirms the TEE intent matches, updates daily spend, and builds the safe `v1.signer` dispatch."*
+### B. Above the Fold: The 3D Interactive X-Ray Stage
+- **Left Column (Editorial Thesis & Primary Action)**:
+  - **Headline**: *"Stop AI assistants from blind-signing your treasury."*
+  - **Scan Selected Errand / Re-Scan Live on NEAR**: Runs the active scenario through the real RLP/Bitcoin byte parser, policy engine, and NEAR AI TEE intent co-auditor.
+  - **Jump to Scenario Index (`01`–`07`)**: Smooth-scrolls to the 7 pre-loaded scenarios.
+- **Right Column (Interactive 3D X-Ray Stage)**:
+  - **3D Perspective Tilt & Wireframe Cube**: Move your cursor across the stage—the card tilts in 3D space and the 60fps wireframe transaction cube rotates and shifts color (`Emerald` = Safe, `Crimson` = Blocked, `Amber` = Escalated to DAO).
+  - **Draggable Optical X-Ray Lens Handle (`< >`)**: Drag the vertical cobalt line left and right across the stage:
+    - **Left of the lens (`Without MpcFirewall — Blind 32-Byte Envelope`)**: Shows the opaque dark obsidian box (`#0B0F17`) and raw 32-byte `keccak256` hash that `v1.signer` normally sees—with zero visibility into recipient, token amount, or hidden approvals.
+    - **Right of the lens (`MpcFirewall X-Ray View`)**: Peels back the envelope to reveal custom editorial artwork, **What Your AI Assistant Claims** vs. **What Is Actually Inside the Envelope**, and the live **On-Chain Firewall Verdict Badge**.
 
-### 0:30 – 0:50 | Scenario 2: The Infinite Blank Check (Red Lane Interception)
-- **Click card:** **`2. Blind-Sign Attack: ERC-20 approve(drainer, MaxUint256)`**.
-- **Click:** **`Run Inspection & Intercept Attacks`**.
-- **Point to:**
-  1. Left card (Without MpcFirewall): **`💀 $142,500 USDC DRAINED`** — explains that without our firewall, `v1.signer` would only see this 32-byte hash and sign away the vault.
-  2. Right card (With MpcFirewall): **`🛡️ $0.00 Lost — Intercepted at $0`** with `ERR_UNLIMITED_APPROVAL`.
-- **Say:** *"Now, a scammer tricks our assistant with prompt injection. The assistant claims it's claiming a gas rebate, but secretly slipped in an unlimited `MaxUint256` approval. Without MpcFirewall, your entire $142,000 treasury is drained. With MpcFirewall, it's intercepted on-chain in 4 milliseconds. Zero dollars lost."*
+---
 
-### 0:50 – 1:10 | Scenario 3: The Trojan Nesting Doll (Nested Multicall Drain)
-- **Click card:** **`3. Smuggled Drain: Nested multicall(bytes[]) Hidden Approve`**.
-- **Click:** **`Run Inspection & Intercept Attacks`**.
-- **Click bottom drawer:** **`Deep Cryptographic Disassembly...`** to briefly reveal the indented `depth=1` tree.
-- **Say:** *"Even if attackers hide the drain inside a Russian nesting doll bundle of normal transfers, our Rust decoder recursively unwraps the multicall tree layer-by-layer and catches the hidden approve."*
+### C. Section 01: The 7-Scenario Swiss Index Strip (`01`–`07`)
+Clicking any row `01` through `07` immediately loads and evaluates that real unsigned EIP-1559 or Bitcoin transaction:
+- **`01` — Safe $25 Supplier Payment** (`Base • 25 USDC` → `APPROVED_FOR_MPC_SIGN`)
+- **`02` — The Blank-Check Trap** (`Base • Unlimited USDC Approval` → `BLOCKED: ERR_UNLIMITED_APPROVAL`)
+- **`03` — The Russian Nesting-Doll Trap** (`Base • Multicall Batch` → `BLOCKED: ERR_NESTED_MULTICALL_VIOLATION`)
+- **`04` — Total NFT Collection Takeover** (`Base • setApprovalForAll` → `BLOCKED: ERR_SET_APPROVAL_FOR_ALL`)
+- **`05` — Bitcoin Dust-Sweep Trap** (`Bitcoin • 150,000 sats` → `BLOCKED: ERR_BTC_OUTPUT_CAP_EXCEEDED`)
+- **`06` — $250 Equipment Purchase** (`Base • 250 USDC` → `ESCALATE_TO_DAO: add_proposal`)
+- **`07` — Unverified Mystery Contract** (`Base • selector 0xdeadbeef` → `BLOCKED: ERR_UNKNOWN_SELECTOR`)
 
-### 1:10 – 1:30 | Scenario 6: $250 Team Milestone (Amber Lane / DAO Governance)
-- **Click card:** **`6. Over-Limit Governance: 250 USDC Escalates to Trezu / SputnikDAO`**.
-- **Click:** **`Run Inspection & Intercept Attacks`**.
-- **Point to:**
-  1. Amber status: **`ESCALATE_TO_DAO`**.
-  2. Amber note: **`🏛️ Paused — Sent to Trezu / SputnikDAO Multisig Proposal`**.
-- **Say:** *"And when the assistant makes a legitimate $250 payment above its $100 allowance, MpcFirewall doesn't fail—it automatically builds a SputnikDAO multisig proposal for human team approval."*
+---
 
-### Wrap Up (Last 5 seconds)
-- **Say:** *"MpcFirewall stops blind signing so AI assistants can safely act across chains. You can verify all 7 scenarios locally with `pnpm verify:judge`."*
+### D. Section 02: Consequence Comparison (Obsidian vs. Paper Split)
+Directly compares **Legacy Agentic Flow (`v1.signer` Alone)** on the left against **MpcFirewall Protected Flow** on the right, updating dynamically for whichever scenario (`01`–`07`) you clicked.
+
+### E. Section 03: Three-Lane Architecture Bento Grid
+Visualizes how MpcFirewall fits into the NEAR ecosystem with custom editorial illustrations:
+1. **Path Ownership (`mpc-firewall.testnet` → `v1.signer`)**
+2. **Three-Lane Traffic Routing (Green Lane Auto-Sign, Red Lane Instant Drop, Amber Lane Trezu/SputnikDAO Proposal)**
+3. **Confidential Intents Treasury Refuel (1Click API Integration)**
+
+### F. Collapsible Cryptographic Proof Drawer (Bottom)
+Click **"Cryptographic Disassembly, AST & NEAR AI TEE Attestation"** at the bottom of the page whenever a technical judge asks *"Is this actually decoding real RLP bytes and verifying TEE signatures?"*—it expands the live `keccak256` preimage digest, recursive ABI call tree, and `ed25519` attestation signature.
+
+---
+
+## 3. Word-for-Word 2-Minute Judge Demo Script
+
+### Step 1: Hook & Drag the X-Ray Lens (25 seconds)
+1. Click **Reset State** in the top-right header so the allowance meter starts at `$0 / $1,000 USDC`.
+2. Point to the **3D Interactive X-Ray Stage** on the right side of the hero section and drag the **Cobalt X-Ray Handle (`< >`)** left and right:
+   > *"On NEAR today, when an AI assistant uses Chain Signatures (`v1.signer`) to pay a supplier on Base or Bitcoin, `v1.signer` only receives a blind 32-byte hash—this black box on the left. If the AI assistant is prompt-injected, `v1.signer` blindly signs away your entire treasury. Dragging our MpcFirewall X-Ray lens across shows how our smart contract opens the raw transaction bytes on-chain before `v1.signer` is ever called."*
+
+### Step 2: Scenario `01` — Safe $25 Errand (20 seconds)
+1. Show that **Scenario `01` (Safe $25 Supplier Payment)** is active:
+   > *"In Scenario 01, our AI assistant asks to pay a verified supplier $25 USDC on Base. MpcFirewall decodes the raw EIP-1559 RLP bytes, confirms the recipient is on our allowlist and the amount is under our $100 autonomous cap, and automatically dispatches the 32-byte hash to `v1.signer`."*
+
+### Step 3: Scenario `02` & `03` — Stopping the Blank-Check & Nesting-Doll Traps (40 seconds)
+1. Click **Row `02` (The Blank-Check Trap)** in the Scenario Index Strip:
+   > *"Now watch what happens when our AI assistant reads a poisoned webpage. It claims it's claiming a free airdrop—but inside the raw hex is an ERC-20 `approve(MAX_UINT256)` blank check. The 3D cube turns crimson and MpcFirewall aborts the transaction on-chain (`ERR_UNLIMITED_APPROVAL`). `v1.signer` is never even called."*
+2. Click **Row `03` (The Russian Nesting-Doll Trap)**:
+   > *"Even if an attacker hides an unlimited approval at depth-1 inside a `multicall(bytes[])` batch alongside a normal $10 payment, our recursive ABI decoder unwraps every nested frame and blocks the batch (`ERR_NESTED_MULTICALL_VIOLATION`)."*
+
+### Step 4: Scenario `06` — CFO Multisig Escalation & Live Technical Proof (35 seconds)
+1. Click **Row `06` ($250 Equipment Purchase)**:
+   > *"Finally, what if the errand is legitimate—paying a verified vendor $250 USDC—but exceeds our AI assistant's $100 autonomous cap? Instead of failing, MpcFirewall routes it to the Amber Lane (`ESCALATE_TO_DAO`) and auto-generates a SputnikDAO / Trezu `add_proposal` payload so human signers can approve it."*
+2. Click **Probe `v1.signer-prod.testnet`** in the top header and open the **Cryptographic Disassembly** drawer at the bottom (or switch to **Protocol Inspector** in the header):
+   > *"Everything you just saw runs against real EIP-1559 RLP and Bitcoin byte decoders, verified NEAR AI TEE attestations, and live `v1.signer-prod.testnet` RPC state."*

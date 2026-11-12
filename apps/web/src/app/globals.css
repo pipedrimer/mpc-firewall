@@ -1,26 +1,32 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #070a0d;
-  --surface: #0d1217;
-  --surface-elevated: #131a21;
-  --border: #1e2935;
-  --text: #eef2f6;
-  --text-muted: #8b9bb0;
-  --accent: #00ec97;
-  --amber: #f59e0b;
-  --danger: #f43f5e;
+  --ground: #F4F5F8;
+  --surface: #FFFFFF;
+  --obsidian: #0B0F17;
+  --ink: #0B0F17;
+  --muted: #525B6C;
+  --line: #E2E6EE;
+  --accent: #1F3CFF;
+  --safe: #059669;
+  --danger: #E11D48;
+  --amber: #D97706;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out-snappy: cubic-bezier(0.23, 1, 0.32, 1);
-  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: var(--font-jetbrains), "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 html,
 body {
-  background-color: var(--bg);
-  color: var(--text);
+  background-color: var(--ground);
+  color: var(--ink);
   font-family: var(--font-sans);
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01";
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
@@ -33,89 +39,49 @@ pre,
 
 button,
 [role="button"] {
-  transition: transform 140ms var(--ease-out-snappy), background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+  transition:
+    transform 180ms var(--ease-out-snappy),
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease;
 }
 
 button:active:not(:disabled) {
-  transform: scale(0.97) translateY(1px);
+  transform: scale(0.98) translateY(1px);
 }
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
 
-/* 3D Perspective & Spatial Depth */
-.perspective-container {
-  perspective: 1200px;
+/* Awwwards inner-span vertical roll hover for primary CTAs */
+.btn-roll {
+  position: relative;
+  overflow: hidden;
 }
 
-.preserve-3d {
-  transform-style: preserve-3d;
+.btn-roll-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: transform 320ms var(--ease-out-expo);
 }
 
-.card-3d {
-  transform-style: preserve-3d;
-  transition: transform 250ms var(--ease-out-snappy), box-shadow 250ms ease, border-color 200ms ease;
+.btn-roll:hover .btn-roll-inner {
+  transform: translateY(-1.5px);
 }
 
-.card-3d:hover {
-  transform: translateY(-4px) rotateX(2deg) rotateY(-1deg);
-  box-shadow: 0 20px 40px -15px rgba(0, 236, 151, 0.12), 0 0 0 1px rgba(0, 236, 151, 0.25);
+/* Swiss Index Row Hover */
+.index-row {
+  transition:
+    transform 240ms var(--ease-out-expo),
+    background-color 200ms ease,
+    border-color 200ms ease,
+    box-shadow 240ms var(--ease-out-expo);
 }
 
-.card-3d-danger:hover {
-  transform: translateY(-4px) rotateX(2deg) rotateY(-1deg);
-  box-shadow: 0 20px 40px -15px rgba(244, 63, 94, 0.18), 0 0 0 1px rgba(244, 63, 94, 0.3);
+.index-row:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 36px -16px rgba(11, 15, 23, 0.09);
 }
-
-.card-3d-amber:hover {
-  transform: translateY(-4px) rotateX(2deg) rotateY(-1deg);
-  box-shadow: 0 20px 40px -15px rgba(245, 158, 11, 0.18), 0 0 0 1px rgba(245, 158, 11, 0.3);
-}
-
-/* Cyber Scanning Line Animation */
-@keyframes xRayScan {
-  0% {
-    top: -10%;
-    opacity: 0;
-  }
-  20% {
-    opacity: 1;
-  }
-  80% {
-    opacity: 1;
-  }
-  100% {
-    top: 110%;
-    opacity: 0;
-  }
-}
-
-.animate-xray-scan {
-  animation: xRayScan 2.4s ease-in-out infinite;
-}
-
-/* Glowing Pulse Line */
-@keyframes pulseGlow {
-  0%, 100% {
-    opacity: 0.3;
-    transform: scale(0.98);
-  }
-  50% {
-    opacity: 0.9;
-    transform: scale(1.02);
-  }
-}
-
-.animate-pulse-glow {
-  animation: pulseGlow 3s ease-in-out infinite;
-}
-
-/* Glassy Card Highlights */
-.glass-panel {
-  background: linear-gradient(135deg, rgba(19, 26, 33, 0.85) 0%, rgba(13, 18, 23, 0.95) 100%);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
-}
-

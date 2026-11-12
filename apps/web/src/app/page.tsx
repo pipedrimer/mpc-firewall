@@ -7,7 +7,6 @@ import { PolicyRail } from '@/components/PolicyRail';
 import { TxWorkbench, type ScenarioPresetView } from '@/components/TxWorkbench';
 import { ProofInspector } from '@/components/ProofInspector';
 import { VisualStoryView } from '@/components/VisualStoryView';
-import { Sparkles, Terminal } from 'lucide-react';
 
 export default function HomePage() {
   const [viewMode, setViewMode] = useState<'story' | 'protocol'>('story');
@@ -31,6 +30,49 @@ export default function HomePage() {
   const [latestRecord, setLatestRecord] = useState<FirewallEvaluationRecord | null>(null);
   const [history, setHistory] = useState<FirewallEvaluationRecord[]>([]);
 
+  const executeInspectPayload = useCallback(
+    async (
+      targetChainKind: FirewallChainKind,
+      targetHex: string,
+      targetIntent: string,
+      resetFirst = false
+    ) => {
+      setInspecting(true);
+      setErrorMsg(null);
+      try {
+        if (resetFirst) {
+          const headers: Record<string, string> = {};
+          if (adminToken.trim()) headers['x-admin-token'] = adminToken.trim();
+          await fetch('/api/policy', { method: 'POST', headers });
+        }
+        const res = await fetch('/api/inspect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chainKind: targetChainKind,
+            rawUnsignedHex: targetHex,
+            agentIntent: targetIntent
+          })
+        });
+        const json = await res.json();
+        if (!res.ok) {
+          throw new Error(json.error?.message || 'Inspection failed');
+        }
+        const record: FirewallEvaluationRecord = json.data.record;
+        setLatestRecord(record);
+        if (json.data.dailyTokenSpentUnits !== undefined) {
+          setDailySpentUnits(json.data.dailyTokenSpentUnits);
+        }
+        setHistory((prev) => [record, ...prev.filter((r) => r.id !== record.id)].slice(0, 15));
+      } catch (err) {
+        setErrorMsg(err instanceof Error ? err.message : 'Inspection error');
+      } finally {
+        setInspecting(false);
+      }
+    },
+    [adminToken]
+  );
+
   const loadBootstrap = useCallback(async () => {
     try {
       const [hRes, pRes] = await Promise.all([fetch('/api/health'), fetch('/api/presets')]);
@@ -40,23 +82,31 @@ export default function HomePage() {
       if (pJson.data) {
         setPolicy(pJson.data.policy);
         setDailySpentUnits(pJson.data.dailyTokenSpentUnits ?? '0');
-        setHistory(pJson.data.history ?? []);
-        if (pJson.data.history?.length) {
-          setLatestRecord(pJson.data.history[0]);
-        }
+        const loadedHistory: FirewallEvaluationRecord[] = pJson.data.history ?? [];
+        setHistory(loadedHistory);
         const loadedPresets: ScenarioPresetView[] = pJson.data.presets ?? [];
         setPresets(loadedPresets);
         if (loadedPresets.length > 0) {
-          setSelectedPresetId(loadedPresets[0].id);
-          setChainKind(loadedPresets[0].chainKind);
-          setAgentIntent(loadedPresets[0].agentIntent);
-          setRawUnsignedHex(loadedPresets[0].rawUnsignedHex);
+          const firstPreset = loadedPresets[0];
+          setSelectedPresetId(firstPreset.id);
+          setChainKind(firstPreset.chainKind);
+          setAgentIntent(firstPreset.agentIntent);
+          setRawUnsignedHex(firstPreset.rawUnsignedHex);
+
+          const cached = loadedHistory.find(
+            (r) => r.agentIntent === firstPreset.agentIntent && !r.decision.codes.includes('ERR_REPLAY_DETECTED')
+          );
+          if (cached) {
+            setLatestRecord(cached);
+          } else {
+            void executeInspectPayload(firstPreset.chainKind, firstPreset.rawUnsignedHex, firstPreset.agentIntent);
+          }
         }
       }
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Failed to load MpcFirewall state');
     }
-  }, []);
+  }, [executeInspectPayload]);
 
   useEffect(() => {
     void loadBootstrap();
@@ -122,34 +172,28 @@ export default function HomePage() {
     setAgentIntent(preset.agentIntent);
     setRawUnsignedHex(preset.rawUnsignedHex);
     setErrorMsg(null);
-  }
 
-  async function handleInspect() {
-    setInspecting(true);
-    setErrorMsg(null);
-    try {
-      const res = await fetch('/api/inspect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chainKind, rawUnsignedHex, agentIntent })
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json.error?.message || 'Inspection failed');
+    if (viewMode === 'story') {
+      const cached = history.find(
+        (r) => r.agentIntent === preset.agentIntent && !r.decision.codes.includes('ERR_REPLAY_DETECTED')
+      );
+      if (cached) {
+        setLatestRecord(cached);
+      } else {
+        void executeInspectPayload(preset.chainKind, preset.rawUnsignedHex, preset.agentIntent);
       }
-      const record: FirewallEvaluationRecord = json.data.record;
-      setLatestRecord(record);
-      setDailySpentUnits(json.data.dailyTokenSpentUnits ?? dailySpentUnits);
-      setHistory((prev) => [record, ...prev].slice(0, 15));
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'Inspection error');
-    } finally {
-      setInspecting(false);
     }
   }
 
+  async function handleInspect() {
+    const shouldResetReplayInStory =
+      viewMode === 'story' &&
+      history.some((r) => r.agentIntent === agentIntent && r.decision.outcome !== 'BLOCKED');
+    await executeInspectPayload(chainKind, rawUnsignedHex, agentIntent, shouldResetReplayInStory);
+  }
+
   return (
-    <div className="min-h-screen bg-[#070a0d] text-[#eef2f6]">
+    <div className="min-h-[100dvh] bg-[#F4F5F8] text-[#0B0F17]">
       <HeaderStatusBar
         health={health}
         rpc={rpc}
@@ -158,52 +202,13 @@ export default function HomePage() {
         onResetDemo={handleResetDemo}
         onCheckRpc={handleProbeRpc}
         checkingRpc={checkingRpc}
+        viewMode={viewMode}
+        onChangeViewMode={setViewMode}
       />
 
-      <main className="mx-auto max-w-[1440px] px-5 py-5">
-        {/* Mode Switcher Banner */}
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#1e2935] bg-[#0d1217] p-2.5 shadow-md">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[#8b9bb0] ml-2">
-              Console View:
-            </span>
-            <div className="flex rounded-xl border border-[#1e2935] bg-[#090d11] p-1">
-              <button
-                type="button"
-                onClick={() => setViewMode('story')}
-                className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
-                  viewMode === 'story'
-                    ? 'bg-gradient-to-r from-[#00ec97] to-[#10b981] text-[#070a0d] shadow-[0_0_15px_rgba(0,236,151,0.35)]'
-                    : 'text-[#8b9bb0] hover:text-[#eef2f6]'
-                }`}
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                <span>Visual Story &amp; Attack Simulator</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('protocol')}
-                className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
-                  viewMode === 'protocol'
-                    ? 'bg-[#1e2935] text-[#00ec97] shadow-sm'
-                    : 'text-[#8b9bb0] hover:text-[#eef2f6]'
-                }`}
-              >
-                <Terminal className="h-3.5 w-3.5" />
-                <span>Deep Protocol &amp; Policy Inspector</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="text-xs text-[#8b9bb0] mr-2 hidden sm:block">
-            {viewMode === 'story'
-              ? '✨ Recommended for Hackathon Demo Video & Executive Presentation'
-              : '🔬 Low-Level RLP Byte Disassembly & SputnikDAO Proposals'}
-          </div>
-        </div>
-
+      <main className="mx-auto max-w-[1400px] px-6 py-8">
         {errorMsg && (
-          <div className="mb-4 rounded-lg border border-[#f43f5e]/40 bg-[#f43f5e]/10 px-4 py-2.5 text-xs text-[#fecdd3]">
+          <div className="mb-6 rounded-xl border border-[#E11D48]/30 bg-[#E11D48]/[0.06] px-4 py-3 text-xs font-medium text-[#E11D48]">
             {errorMsg}
           </div>
         )}
@@ -217,79 +222,76 @@ export default function HomePage() {
             policy={policy}
             loading={inspecting}
             onInspect={handleInspect}
-            dailySpentUnits={dailySpentUnits}
-            onResetDemo={handleResetDemo}
-            onCheckRpc={handleProbeRpc}
-            checkingRpc={checkingRpc}
-            rpcRootKey={rpc?.mpcRootPublicKey}
           />
         ) : (
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
-            <div className="lg:col-span-3">
-              <PolicyRail
-                policy={policy}
-                saving={savingPolicy}
-                adminAuthEnabled={Boolean(health?.adminAuthEnabled)}
-                adminToken={adminToken}
-                onChangeAdminToken={setAdminToken}
-                onToggleRule={handleTogglePolicy}
-              />
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+              <div className="lg:col-span-3">
+                <PolicyRail
+                  policy={policy}
+                  saving={savingPolicy}
+                  adminAuthEnabled={Boolean(health?.adminAuthEnabled)}
+                  adminToken={adminToken}
+                  onChangeAdminToken={setAdminToken}
+                  onToggleRule={handleTogglePolicy}
+                />
+              </div>
+
+              <div className="lg:col-span-5">
+                <TxWorkbench
+                  presets={presets}
+                  selectedPresetId={selectedPresetId}
+                  chainKind={chainKind}
+                  agentIntent={agentIntent}
+                  rawUnsignedHex={rawUnsignedHex}
+                  loading={inspecting}
+                  onSelectPreset={handleSelectPreset}
+                  onChangeChainKind={setChainKind}
+                  onChangeIntent={setAgentIntent}
+                  onChangeRawHex={setRawUnsignedHex}
+                  onInspect={handleInspect}
+                />
+              </div>
+
+              <div className="lg:col-span-4">
+                <ProofInspector record={latestRecord} />
+              </div>
             </div>
 
-            <div className="lg:col-span-5">
-              <TxWorkbench
-                presets={presets}
-                selectedPresetId={selectedPresetId}
-                chainKind={chainKind}
-                agentIntent={agentIntent}
-                rawUnsignedHex={rawUnsignedHex}
-                loading={inspecting}
-                onSelectPreset={handleSelectPreset}
-                onChangeChainKind={setChainKind}
-                onChangeIntent={setAgentIntent}
-                onChangeRawHex={setRawUnsignedHex}
-                onInspect={handleInspect}
-              />
-            </div>
-
-            <div className="lg:col-span-4">
-              <ProofInspector record={latestRecord} />
-            </div>
-          </div>
-        )}
-
-        {history.length > 0 && (
-          <section className="mt-5 rounded-xl border border-[#1e2935] bg-[#0d1217] p-4">
-            <h2 className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-[#8b9bb0]">
-              Recent Firewall Audit Log
-            </h2>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {history.slice(0, 6).map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setLatestRecord(item)}
-                  className="rounded-lg border border-[#1e2935] bg-[#090d11] p-2.5 text-left text-xs hover:border-[#2e3d4f]"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono text-[10px] text-[#8b9bb0]">{item.id}</span>
-                    <span
-                      className={`rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold ${
-                        item.decision.outcome === 'APPROVED_FOR_MPC_SIGN'
-                          ? 'bg-[#00ec97]/15 text-[#00ec97]'
-                          : item.decision.outcome === 'ESCALATE_TO_DAO'
-                            ? 'bg-[#f59e0b]/15 text-[#f59e0b]'
-                            : 'bg-[#f43f5e]/15 text-[#f43f5e]'
-                      }`}
+            {history.length > 0 && (
+              <section className="rounded-xl border border-[#DCE0E8] bg-white p-5 shadow-[0_1px_2px_rgba(11,15,23,0.04)]">
+                <h2 className="mb-3 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[#525B6C]">
+                  Recent Firewall Audit Log
+                </h2>
+                <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+                  {history.slice(0, 6).map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setLatestRecord(item)}
+                      className="rounded-lg border border-[#E2E6EE] bg-[#F8F9FB] p-3 text-left text-xs transition-colors hover:border-[#0B0F17]/30 hover:bg-white"
                     >
-                      {item.decision.outcome}
-                    </span>
-                  </div>
-                  <div className="mt-1 truncate text-[#eef2f6]">{item.agentIntent}</div>
-                </button>
-              ))}
-            </div>
-          </section>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-[10px] text-[#525B6C]">{item.id}</span>
+                        <span
+                          className={`rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold ${
+                            item.decision.outcome === 'APPROVED_FOR_MPC_SIGN'
+                              ? 'bg-[#059669]/10 text-[#059669]'
+                              : item.decision.outcome === 'ESCALATE_TO_DAO'
+                                ? 'bg-[#D97706]/10 text-[#D97706]'
+                                : 'bg-[#E11D48]/10 text-[#E11D48]'
+                          }`}
+                        >
+                          {item.decision.outcome}
+                        </span>
+                      </div>
+                      <div className="mt-1.5 truncate font-medium text-[#0B0F17]">{item.agentIntent}</div>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
         )}
       </main>
     </div>

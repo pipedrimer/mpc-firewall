@@ -4,25 +4,21 @@ import { useState } from 'react';
 import type { FirewallEvaluationRecord, FirewallPolicy } from '@mpc-firewall/core';
 import type { ScenarioPresetView } from '@/components/TxWorkbench';
 import {
-  AlertOctagon,
+  InteractiveXRayStage,
+  type ScenarioStoryMeta
+} from '@/components/InteractiveXRayStage';
+import {
+  ArrowDownRight,
   ArrowRight,
-  Bot,
+  ArrowUpRight,
   CheckCircle2,
+  ChevronDown,
   Code2,
-  Coins,
   Cpu,
-  Eye,
-  KeyRound,
-  Layers,
+  Landmark,
   Lock,
-  Play,
-  RefreshCw,
   ShieldAlert,
-  ShieldCheck,
-  Sparkles,
-  TrendingDown,
-  Unlock,
-  Zap
+  ShieldCheck
 } from 'lucide-react';
 
 interface VisualStoryViewProps {
@@ -33,80 +29,106 @@ interface VisualStoryViewProps {
   policy: FirewallPolicy | null;
   loading: boolean;
   onInspect: () => void;
-  dailySpentUnits: string;
-  onResetDemo: () => void;
-  onCheckRpc: () => void;
-  checkingRpc: boolean;
-  rpcRootKey?: string;
 }
 
-const SCENARIO_META: Record<
-  string,
-  {
-    icon: string;
-    subtitle: string;
-    tag: string;
-    targetNetwork: string;
-    unprotectedOutcome: string;
-    financialImpact: string;
-  }
-> = {
+const STORY_MAP: Record<string, ScenarioStoryMeta> = {
   'safe-base-usdc': {
-    icon: '☕',
-    subtitle: 'Routine $25 vendor invoice on Base',
-    tag: 'Safe Errand',
-    targetNetwork: 'Base (EVM 8453)',
-    unprotectedOutcome: 'Signed normally via v1.signer',
-    financialImpact: '$25.00 USDC legit payment'
+    index: '01',
+    humanTitle: 'The $25 Server Bill',
+    plainSummary: 'Routine $25 USDC vendor payment on Base within the $100 automatic limit.',
+    assistantClaim: 'Pay approved Base infrastructure vendor 25 USDC for server compute.',
+    hiddenReality: 'Clean 25 USDC transfer to your approved vendor address.',
+    withoutResult: 'Signed normally ($25.00 sent)',
+    withResult: '$25.00 USDC verified & signed safely via v1.signer',
+    dollarBadge: '$25 Approved',
+    illustration: '/illustrations/hero-xray.jpg',
+    networkLabel: 'Base • 8453'
   },
   'attack-unlimited-approve': {
-    icon: '💣',
-    subtitle: 'Hidden ERC-20 approve(drainer, MaxUint256)',
-    tag: 'Blank Check Scam',
-    targetNetwork: 'Base (EVM 8453)',
-    unprotectedOutcome: 'Hacker drains 100% of foreign wallet later',
-    financialImpact: '💀 $142,500 USDC DRAINED'
+    index: '02',
+    humanTitle: 'The Infinite Blank Check',
+    plainSummary: 'Tricked assistant hides an unlimited token approval inside a routine rebate claim.',
+    assistantClaim: 'Claim routine gas rebate on Base.',
+    hiddenReality: 'Unlimited power-of-attorney check (MaxUint256) to a known drainer.',
+    withoutResult: 'Entire $142,500 treasury drained',
+    withResult: '$0.00 lost — blocked before reaching v1.signer',
+    dollarBadge: '$142,500 Saved',
+    illustration: '/illustrations/blank-check.jpg',
+    networkLabel: 'Base • 8453'
   },
   'attack-nested-multicall': {
-    icon: '🪆',
-    subtitle: 'Multicall bundle smuggling hidden approve',
-    tag: 'Trojan Nesting Doll',
-    targetNetwork: 'Base Router (EVM 8453)',
-    unprotectedOutcome: 'Hacker bypasses surface filters inside multicall',
-    financialImpact: '💀 $142,500 USDC DRAINED'
+    index: '03',
+    humanTitle: 'The Russian Nesting Doll',
+    plainSummary: 'Smuggles a wallet-draining approval inside a bundle of harmless transfers.',
+    assistantClaim: 'Execute routine router batch transfer (5 USDC).',
+    hiddenReality: 'Outer box transfers 5 USDC; inner nesting doll grants infinite access.',
+    withoutResult: 'Surface filters fooled — $142,500 drained',
+    withResult: 'Unwrapped 2 layers deep & blocked at $0.00',
+    dollarBadge: '$142,500 Saved',
+    illustration: '/illustrations/nesting-dolls.jpg',
+    networkLabel: 'Base Router • 8453'
   },
   'attack-wrong-chain': {
-    icon: '⛓️',
-    subtitle: 'Claims Base, but RLP encodes Ethereum Mainnet',
-    tag: 'Wrong-Chain Trap',
-    targetNetwork: 'Ethereum Mainnet (EVM 1)',
-    unprotectedOutcome: 'Replayed on wrong chain without authorization',
-    financialImpact: '💀 0.05 ETH wasted / leaked'
+    index: '04',
+    humanTitle: 'The Wrong-Network Switch',
+    plainSummary: 'Claims to send funds on Base, but secretly targets Ethereum Mainnet.',
+    assistantClaim: 'Send 0.05 ETH on Base.',
+    hiddenReality: 'Transaction bytes actually target Ethereum Mainnet (chainId 1).',
+    withoutResult: '0.05 ETH replayed on unauthorized network',
+    withResult: '$0.00 lost — unauthorized network blocked cold',
+    dollarBadge: '0.05 ETH Saved',
+    illustration: '/illustrations/multichain-passport.jpg',
+    networkLabel: 'Ethereum • Chain 1'
   },
   'attack-nft-approval': {
-    icon: '🖼️',
-    subtitle: 'Blanket setApprovalForAll(operator, true)',
-    tag: 'NFT Sweeper Drain',
-    targetNetwork: 'Base NFT (EVM 8453)',
-    unprotectedOutcome: 'Thief steals entire NFT collection in one tx',
-    financialImpact: '💀 100% NFTs TRANSFERRED'
+    index: '05',
+    humanTitle: 'The NFT Collection Sweep',
+    plainSummary: 'Disguises a blanket NFT collection handover as an ownership check.',
+    assistantClaim: 'Verify NFT collection ownership.',
+    hiddenReality: 'Calls setApprovalForAll(true) handing over every NFT in your vault.',
+    withoutResult: '100% of vault NFTs swept in one click',
+    withResult: '$0.00 lost — blanket NFT approval blocked',
+    dollarBadge: 'Vault Protected',
+    illustration: '/illustrations/blind-envelope.jpg',
+    networkLabel: 'Base NFT • 8453'
   },
   'escalate-dao-250usdc': {
-    icon: '🏛️',
-    subtitle: 'Legit $250 invoice (> $100 auto-cap)',
-    tag: 'DAO Governance',
-    targetNetwork: 'Base (EVM 8453)',
-    unprotectedOutcome: 'Signed autonomously without team approval',
-    financialImpact: '⚠️ $250.00 spent without human sign-off'
+    index: '06',
+    humanTitle: 'The $250 Team Milestone',
+    plainSummary: 'Valid $250 vendor invoice above the $100 automatic cap asks humans to vote.',
+    assistantClaim: 'Pay approved vendor 250 USDC milestone invoice on Base.',
+    hiddenReality: 'Valid 250 USDC payment — above $100 auto-cap, within $500 hard cap.',
+    withoutResult: '$250 spent without manager sign-off',
+    withResult: 'Paused & routed to Trezu / SputnikDAO for human vote',
+    dollarBadge: 'Team Vote Created',
+    illustration: '/illustrations/three-lanes.jpg',
+    networkLabel: 'Base • SputnikDAO'
   },
   'attack-btc-hijack': {
-    icon: '₿',
-    subtitle: 'Raw Bitcoin tx diverting 250,000 sats',
-    tag: 'BTC Hijack',
-    targetNetwork: 'Bitcoin Network',
-    unprotectedOutcome: 'Bitcoin redirected to unapproved scriptPubKey',
-    financialImpact: '💀 250,000 Satoshis STOLEN'
+    index: '07',
+    humanTitle: 'The Bitcoin Redirect',
+    plainSummary: 'Raw Bitcoin transaction diverts 250,000 satoshis to an unapproved address.',
+    assistantClaim: 'Consolidate 50,000 sats to treasury change address.',
+    hiddenReality: 'Redirects 250,000 sats (2.5x limit) to an unapproved Bitcoin script.',
+    withoutResult: '250,000 satoshis stolen on Bitcoin',
+    withResult: '0 sats lost — raw Bitcoin output blocked on NEAR',
+    dollarBadge: '250k Sats Saved',
+    illustration: '/illustrations/xray-conveyor.jpg',
+    networkLabel: 'Bitcoin Raw Tx'
   }
+};
+
+const FALLBACK_META: ScenarioStoryMeta = {
+  index: '01',
+  humanTitle: 'AI Assistant Transaction',
+  plainSummary: 'Inspect raw transaction bytes before NEAR Chain Signatures signs.',
+  assistantClaim: 'Execute cross-chain transaction.',
+  hiddenReality: 'Decoded on-chain in Rust WebAssembly.',
+  withoutResult: 'Signed blindfolded by v1.signer',
+  withResult: 'Verified on-chain before signing',
+  dollarBadge: 'Protected',
+  illustration: '/illustrations/hero-xray.jpg',
+  networkLabel: 'Multi-Chain'
 };
 
 export function VisualStoryView({
@@ -114,37 +136,15 @@ export function VisualStoryView({
   selectedPresetId,
   onSelectPreset,
   record,
-  policy,
   loading,
-  onInspect,
-  dailySpentUnits,
-  onResetDemo,
-  onCheckRpc,
-  checkingRpc,
-  rpcRootKey
+  onInspect
 }: VisualStoryViewProps) {
-  const [showDeepProof, setShowDeepProof] = useState(false);
+  const [showProofDrawer, setShowProofDrawer] = useState(false);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteOutput, setQuoteOutput] = useState<string | null>(null);
 
   const activePreset = presets.find((p) => p.id === selectedPresetId) || presets[0] || null;
-  const meta = (activePreset && SCENARIO_META[activePreset.id]) || {
-    icon: '⚡',
-    subtitle: activePreset?.description || 'Simulate AI assistant transactions',
-    tag: activePreset?.badge || 'SCENARIO',
-    targetNetwork: activePreset?.chainKind === 'bitcoin' ? 'Bitcoin' : 'Base (EVM)',
-    unprotectedOutcome: 'Blindly stamped by v1.signer',
-    financialImpact: 'Unknown financial risk'
-  };
-
-  const spentUsdc = Number(dailySpentUnits || '0') / 1_000_000;
-  const maxUsdc = Number(policy?.maxDailyTokenUnits || '1000000000') / 1_000_000;
-  const spentPct = Math.min(100, Math.round((spentUsdc / (maxUsdc || 1)) * 100));
-
-  const outcome = record?.decision.outcome;
-  const isBlocked = outcome === 'BLOCKED';
-  const isApproved = outcome === 'APPROVED_FOR_MPC_SIGN';
-  const isEscalated = outcome === 'ESCALATE_TO_DAO';
+  const activeMeta = (activePreset && STORY_MAP[activePreset.id]) || FALLBACK_META;
 
   async function handlePreviewIntents() {
     setQuoteLoading(true);
@@ -172,102 +172,79 @@ export function VisualStoryView({
   }
 
   return (
-    <div className="space-y-6">
-      {/* Top Hero Banner & Quick Stats */}
-      <section className="relative overflow-hidden rounded-2xl border border-[#1e2935] bg-gradient-to-br from-[#0d1217] via-[#101720] to-[#0a0e12] p-5 shadow-2xl">
-        <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-start gap-3.5">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[#00ec97]/40 bg-[#00ec97]/10 text-[#00ec97] shadow-[0_0_20px_rgba(0,236,151,0.25)]">
-              <Bot className="h-6 w-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold tracking-tight text-[#eef2f6]">
-                  AI Assistant Security Operations
-                </h1>
-                <span className="rounded-full border border-[#00ec97]/40 bg-[#00ec97]/15 px-2.5 py-0.5 font-mono text-[11px] font-semibold text-[#00ec97]">
-                  Zero Blind Signing Active
-                </span>
-              </div>
-              <p className="mt-1 text-xs text-[#8b9bb0]">
-                Airport X-ray inspection gateway protecting NEAR Chain Signatures (
-                <code className="text-[#00ec97]">v1.signer</code>) from prompt-injected AI agent transactions.
-              </p>
-            </div>
+    <div className="space-y-20 pb-16">
+      {/* =====================================================================
+          SECTION 1: ASYMMETRIC SPLIT HERO + 3D INTERACTIVE X-RAY STAGE
+         ===================================================================== */}
+      <section className="grid grid-cols-1 items-center gap-10 pt-4 lg:grid-cols-12">
+        {/* Left Column: Strict 4-Element Hero Stack */}
+        <div className="space-y-6 lg:col-span-5">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#DCE0E8] bg-white px-3.5 py-1.5 font-mono text-[11px] font-semibold tracking-wider text-[#1F3CFF] uppercase">
+            01 / ZERO BLIND SIGNING FOR NEAR AGENTS
           </div>
 
-          {/* Quick interactive controls */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            {/* Live RPC Probe */}
+          <h1 className="text-4xl font-extrabold tracking-[-0.04em] leading-[0.98] text-[#0B0F17] sm:text-5xl xl:text-[54px]">
+            Never let your AI assistant sign a sealed envelope.
+          </h1>
+
+          <p className="max-w-[46ch] text-base leading-relaxed text-[#525B6C] sm:text-lg">
+            Before your AI spends money across Ethereum, Base, or Bitcoin, MpcFirewall X-rays the
+            package and blocks hidden traps.
+          </p>
+
+          <div className="flex flex-wrap items-center gap-3.5 pt-1">
             <button
               type="button"
-              onClick={onCheckRpc}
-              disabled={checkingRpc}
-              className="flex items-center gap-1.5 rounded-xl border border-[#1e2935] bg-[#131a21] px-3 py-2 text-xs text-[#eef2f6] shadow-sm hover:border-[#00ec97]/60 hover:text-[#00ec97]"
+              onClick={onInspect}
+              disabled={loading}
+              className="btn-roll group inline-flex items-center gap-2.5 rounded-full bg-[#1F3CFF] px-7 py-3.5 text-sm font-semibold text-white shadow-[0_14px_30px_-8px_rgba(31,60,255,0.45)] hover:bg-[#0B0F17] disabled:opacity-50"
             >
-              <KeyRound className="h-4 w-4 text-[#00ec97]" />
-              <span className="font-mono">
-                {rpcRootKey
-                  ? `MPC Root Key: ${rpcRootKey.slice(0, 12)}…`
-                  : checkingRpc
-                    ? 'Probing NEAR RPC…'
-                    : 'Probe v1.signer-prod.testnet'}
+              <span className="btn-roll-inner">
+                <span>{loading ? 'Scanning Envelope…' : 'Scan Selected Errand'}</span>
+                <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               </span>
             </button>
 
-            {/* Daily spend readout */}
-            <div className="flex items-center gap-2.5 rounded-xl border border-[#1e2935] bg-[#131a21] px-3 py-2 text-xs">
-              <Coins className="h-4 w-4 text-[#f59e0b]" />
-              <div>
-                <div className="text-[10px] uppercase tracking-wider text-[#8b9bb0]">Daily Assistant Spend</div>
-                <div className="font-mono font-semibold text-[#eef2f6]">
-                  {spentUsdc.toFixed(2)} / {maxUsdc.toFixed(2)} USDC
-                </div>
-              </div>
-              <div className="h-2 w-16 overflow-hidden rounded-full bg-[#1e2935]">
-                <div
-                  className="h-full bg-gradient-to-r from-[#00ec97] to-[#10b981] transition-all duration-300"
-                  style={{ width: `${spentPct}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Reset */}
-            <button
-              type="button"
-              onClick={onResetDemo}
-              className="flex items-center gap-1.5 rounded-xl border border-[#1e2935] bg-[#131a21] px-3 py-2 text-xs text-[#8b9bb0] hover:border-[#2e3d4f] hover:text-[#eef2f6]"
-              title="Reset daily spend and replay cache"
+            <a
+              href="#scenarios"
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#DCE0E8] bg-white px-5 py-3.5 text-sm font-semibold text-[#0B0F17] hover:border-[#0B0F17]"
             >
-              <RefreshCw className="h-3.5 w-3.5" />
-              <span>Reset State</span>
-            </button>
+              <span>Test 7 Scenarios</span>
+              <ArrowDownRight className="h-4 w-4 text-[#525B6C]" />
+            </a>
           </div>
+        </div>
+
+        {/* Right Column: Interactive 3D X-Ray Aperture & Draggable Lens */}
+        <div className="lg:col-span-7">
+          <InteractiveXRayStage
+            preset={activePreset}
+            meta={activeMeta}
+            record={record}
+            loading={loading}
+            onInspect={onInspect}
+          />
         </div>
       </section>
 
-      {/* STEP 1: ONE-CLICK SCENARIO SELECTOR (3D CARDS) */}
-      <section className="space-y-2.5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#00ec97]/15 font-mono text-xs font-bold text-[#00ec97]">
-              1
-            </span>
-            <h2 className="text-sm font-bold uppercase tracking-wider text-[#eef2f6]">
-              Select AI Assistant Action &amp; Attack Sandbox
-            </h2>
-          </div>
-          <span className="text-xs text-[#8b9bb0]">Click any scenario to simulate live</span>
+      {/* =====================================================================
+          SECTION 2: SWISS INDEX SCENARIO STRIP (01 — 07)
+         ===================================================================== */}
+      <section id="scenarios" className="scroll-mt-24 space-y-6">
+        <div className="max-w-2xl space-y-2">
+          <h2 className="text-3xl font-extrabold tracking-[-0.035em] text-[#0B0F17] sm:text-4xl">
+            Click any errand to X-ray what is really inside.
+          </h2>
+          <p className="text-base text-[#525B6C]">
+            Seven real transactions built from actual Ethereum, Base, and Bitcoin bytes. Select one
+            to watch how MpcFirewall responds in milliseconds.
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="divide-y divide-[#E2E6EE] overflow-hidden rounded-[24px] border border-[#DCE0E8] bg-white shadow-[0_20px_40px_-24px_rgba(11,15,23,0.08)]">
           {presets.map((preset) => {
             const active = preset.id === selectedPresetId;
-            const pMeta = SCENARIO_META[preset.id] || {
-              icon: '⚡',
-              subtitle: preset.description,
-              tag: preset.badge
-            };
+            const meta = STORY_MAP[preset.id] || FALLBACK_META;
             const isSafe = preset.badge === 'SAFE';
             const isDao = preset.badge === 'DAO_ESCALATION';
 
@@ -276,43 +253,60 @@ export function VisualStoryView({
                 key={preset.id}
                 type="button"
                 onClick={() => onSelectPreset(preset)}
-                className={`card-3d relative flex flex-col justify-between rounded-xl border p-3.5 text-left transition-all ${
+                className={`group flex w-full flex-col gap-4 px-6 py-5 text-left transition-colors sm:flex-row sm:items-center sm:justify-between ${
                   active
-                    ? isSafe
-                      ? 'border-[#00ec97] bg-gradient-to-b from-[#00ec97]/15 to-[#0d1217] shadow-[0_12px_30px_-10px_rgba(0,236,151,0.3)]'
-                      : isDao
-                        ? 'border-[#f59e0b] bg-gradient-to-b from-[#f59e0b]/15 to-[#0d1217] shadow-[0_12px_30px_-10px_rgba(245,158,11,0.3)]'
-                        : 'border-[#f43f5e] bg-gradient-to-b from-[#f43f5e]/15 to-[#0d1217] shadow-[0_12px_30px_-10px_rgba(244,63,94,0.3)]'
-                    : 'border-[#1e2935] bg-[#0d1217] hover:border-[#2e3d4f]'
+                    ? 'bg-[#F0F4FF]'
+                    : 'bg-white hover:bg-[#FAFBFD]'
                 }`}
               >
-                <div>
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-2xl">{pMeta.icon}</span>
-                    <span
-                      className={`rounded px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase ${
-                        isSafe
-                          ? 'bg-[#00ec97]/15 text-[#00ec97]'
-                          : isDao
-                            ? 'bg-[#f59e0b]/15 text-[#f59e0b]'
-                            : 'bg-[#f43f5e]/15 text-[#f43f5e]'
-                      }`}
-                    >
-                      {preset.badge}
-                    </span>
-                  </div>
-                  <div className="mt-2 text-xs font-bold text-[#eef2f6]">{preset.title.replace(/^\d+\.\s*/, '')}</div>
-                  <div className="mt-1 line-clamp-2 text-[11px] text-[#8b9bb0]">{pMeta.subtitle}</div>
-                </div>
-
-                <div className="mt-3 flex items-center justify-between border-t border-[#1e2935]/60 pt-2 text-[10px]">
-                  <span className="font-mono text-[#8b9bb0]">{preset.chainKind.toUpperCase()}</span>
+                <div className="flex items-start gap-4 sm:items-center">
                   <span
-                    className={`font-semibold ${
-                      active ? 'text-[#eef2f6]' : 'text-[#8b9bb0] group-hover:text-[#eef2f6]'
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-mono text-xs font-bold transition-colors ${
+                      active
+                        ? 'bg-[#1F3CFF] text-white'
+                        : 'border border-[#DCE0E8] bg-[#F4F5F8] text-[#0B0F17] group-hover:border-[#0B0F17]'
                     }`}
                   >
-                    {active ? '● Selected' : 'Select →'}
+                    {meta.index}
+                  </span>
+
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <span className="text-base font-bold tracking-tight text-[#0B0F17]">
+                        {meta.humanTitle}
+                      </span>
+                      <span className="rounded-full border border-[#DCE0E8] bg-white px-2.5 py-0.5 font-mono text-[11px] text-[#525B6C]">
+                        {meta.networkLabel}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-sm text-[#525B6C]">{meta.plainSummary}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-4 sm:justify-end">
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-bold ${
+                      isSafe
+                        ? 'bg-[#ECFDF5] text-[#059669]'
+                        : isDao
+                          ? 'bg-[#FFFBEB] text-[#D97706]'
+                          : 'bg-[#FFF1F2] text-[#E11D48]'
+                    }`}
+                  >
+                    {isSafe && <CheckCircle2 className="h-3.5 w-3.5" />}
+                    {isDao && <Landmark className="h-3.5 w-3.5" />}
+                    {!isSafe && !isDao && <ShieldAlert className="h-3.5 w-3.5" />}
+                    <span>{meta.dollarBadge}</span>
+                  </span>
+
+                  <span
+                    className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-all ${
+                      active
+                        ? 'border-[#1F3CFF] bg-[#1F3CFF] text-white'
+                        : 'border-[#DCE0E8] bg-white text-[#0B0F17] group-hover:translate-x-0.5 group-hover:border-[#0B0F17]'
+                    }`}
+                  >
+                    <ArrowRight className="h-4 w-4" />
                   </span>
                 </div>
               </button>
@@ -321,301 +315,328 @@ export function VisualStoryView({
         </div>
       </section>
 
-      {/* STEP 2: THE 3D AIRPORT X-RAY INSPECTION BELT */}
-      <section className="relative rounded-2xl border border-[#1e2935] bg-[#0d1217] p-5 shadow-xl">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-[#1e2935] pb-3">
-          <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#00ec97]/15 font-mono text-xs font-bold text-[#00ec97]">
-              2
-            </span>
-            <h2 className="text-sm font-bold uppercase tracking-wider text-[#eef2f6]">
-              Live Airport X-Ray Inspection Belt
-            </h2>
-          </div>
-
-          {/* Big Action Button */}
-          <button
-            type="button"
-            disabled={loading}
-            onClick={onInspect}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#00ec97] to-[#10b981] px-5 py-2.5 text-xs font-bold text-[#070a0d] shadow-[0_0_25px_rgba(0,236,151,0.35)] hover:from-[#19f4a6] hover:to-[#22c55e] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Play className="h-4 w-4 fill-current" />
-            <span>{loading ? 'X-Raying Bytes & Evaluating Policy…' : 'Run Inspection & Intercept Attacks'}</span>
-          </button>
+      {/* =====================================================================
+          SECTION 3: SIDE-BY-SIDE ARCHITECTURAL CONSEQUENCE STAGE
+         ===================================================================== */}
+      <section className="space-y-6">
+        <div className="max-w-2xl space-y-2">
+          <h2 className="text-3xl font-extrabold tracking-[-0.035em] text-[#0B0F17] sm:text-4xl">
+            Why current NEAR agent locks cannot see the trap.
+          </h2>
+          <p className="text-base text-[#525B6C]">
+            Existing NEAR Function Call Keys act like a lobby badge: they check who your AI
+            assistant is, then let it walk straight up to the vault with a sealed black envelope.
+          </p>
         </div>
 
-        {/* The 4 Inspection Gates (Horizontal Pipeline) */}
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-          {/* Gate 1: AI Assistant Intent */}
-          <div className="glass-panel relative flex flex-col justify-between rounded-xl p-3.5">
-            <div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {/* Left: Today Without MpcFirewall (Obsidian Field Card) */}
+          <div className="flex flex-col justify-between rounded-[24px] bg-[#0B0F17] p-8 text-white shadow-xl">
+            <div className="space-y-5">
               <div className="flex items-center justify-between">
-                <span className="font-mono text-[10px] font-bold text-[#8b9bb0]">GATE 1</span>
-                <Bot className="h-4 w-4 text-[#00ec97]" />
-              </div>
-              <div className="mt-2 text-xs font-bold text-[#eef2f6]">AI Assistant Intent</div>
-              <div className="mt-1 rounded border border-[#1e2935] bg-[#090d11] p-2 font-mono text-[11px] text-[#eef2f6]">
-                &ldquo;{activePreset?.agentIntent || 'Select or inspect a transaction below…'}&rdquo;
-              </div>
-            </div>
-            <div className="mt-2 text-[10px] text-[#8b9bb0]">Target: {meta.targetNetwork}</div>
-          </div>
-
-          {/* Gate 2: On-Chain RLP / ABI Unwrapper */}
-          <div className="glass-panel relative flex flex-col justify-between rounded-xl p-3.5">
-            {loading && <div className="animate-xray-scan absolute inset-x-0 h-1 bg-[#00ec97]" />}
-            <div>
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-[10px] font-bold text-[#8b9bb0]">GATE 2</span>
-                <Layers className="h-4 w-4 text-[#2563eb]" />
-              </div>
-              <div className="mt-2 text-xs font-bold text-[#eef2f6]">On-Chain X-Ray Decoder</div>
-              <div className="mt-1 text-[11px] text-[#8b9bb0]">
-                Unwraps raw transaction bytes &amp; recursive <code className="text-[#eef2f6]">multicall</code> trees
-                up to depth 3 in Rust Wasm.
-              </div>
-            </div>
-            <div className="mt-2 font-mono text-[10px] text-[#00ec97]">
-              {record ? `Decoded ${record.decoded.kind.toUpperCase()} Bytes` : 'Awaiting inspection…'}
-            </div>
-          </div>
-
-          {/* Gate 3: NEAR AI Cloud TEE Audit */}
-          <div className="glass-panel relative flex flex-col justify-between rounded-xl p-3.5">
-            <div>
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-[10px] font-bold text-[#8b9bb0]">GATE 3</span>
-                <Cpu className="h-4 w-4 text-[#7c3aed]" />
-              </div>
-              <div className="mt-2 text-xs font-bold text-[#eef2f6]">Private TEE Lie Detector</div>
-              <div className="mt-1 text-[11px] text-[#8b9bb0]">
-                Confidential audit compares stated assistant reason against decoded math without leaking prompts.
-              </div>
-            </div>
-            <div className="mt-2 flex items-center gap-1 font-mono text-[10px] text-[#7c3aed]">
-              <Sparkles className="h-3 w-3" />
-              <span>{record?.teeAudit?.signatureVerified ? 'TEE Sig Verified' : 'Ed25519 Enclave'}</span>
-            </div>
-          </div>
-
-          {/* Gate 4: Spend Caps & Vault Stamp */}
-          <div className="glass-panel relative flex flex-col justify-between rounded-xl p-3.5">
-            <div>
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-[10px] font-bold text-[#8b9bb0]">GATE 4</span>
-                <Lock className="h-4 w-4 text-[#f59e0b]" />
-              </div>
-              <div className="mt-2 text-xs font-bold text-[#eef2f6]">Policy &amp; Vault Stamp</div>
-              <div className="mt-1 text-[11px] text-[#8b9bb0]">
-                Auto-approves &le; $100 USDC, escalates &le; $500 to SputnikDAO, and blocks unlimited approvals cold.
-              </div>
-            </div>
-            <div className="mt-2 font-mono text-[10px]">
-              {outcome ? (
-                <span
-                  className={
-                    isApproved ? 'text-[#00ec97]' : isEscalated ? 'text-[#f59e0b]' : 'font-bold text-[#f43f5e]'
-                  }
-                >
-                  {outcome}
+                <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-1 text-xs font-semibold text-[#FB7185]">
+                  <Lock className="h-3.5 w-3.5" />
+                  Today on NEAR (Without MpcFirewall)
                 </span>
-              ) : (
-                <span className="text-[#8b9bb0]">Ready to stamp</span>
-              )}
+                <span className="font-mono text-xs text-white/50">Blind Signing</span>
+              </div>
+
+              <h3 className="text-2xl font-bold tracking-tight text-white">
+                The vault stamps a 32-byte code blindfolded.
+              </h3>
+
+              <div className="overflow-hidden rounded-2xl border border-white/10 bg-white p-3">
+                <img
+                  src="/illustrations/blind-envelope.jpg"
+                  alt="Blindfolded notary stamping a sealed black envelope"
+                  className="h-48 w-full object-contain"
+                />
+              </div>
+
+              <p className="text-sm leading-relaxed text-white/75">
+                When your AI assistant asks <code className="text-white">v1.signer</code> to sign an
+                Ethereum or Bitcoin transfer, it only sends a 32-byte hash. A $25 bill and an
+                infinite wallet drain look identical from the outside.
+              </p>
+            </div>
+
+            <div className="mt-6 flex items-center justify-between rounded-2xl border border-[#F43F5E]/30 bg-[#F43F5E]/15 px-4 py-3 text-sm">
+              <span className="text-white/80">If your assistant is tricked:</span>
+              <strong className="font-bold text-[#FB7185]">{activeMeta.withoutResult}</strong>
+            </div>
+          </div>
+
+          {/* Right: With MpcFirewall (Pure Paper Card) */}
+          <div className="flex flex-col justify-between rounded-[24px] border border-[#DCE0E8] bg-white p-8 shadow-[0_20px_40px_-24px_rgba(11,15,23,0.08)]">
+            <div className="space-y-5">
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-2 rounded-full bg-[#ECFDF5] px-3.5 py-1 text-xs font-semibold text-[#059669]">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  With MpcFirewall (Drop-In Security Gate)
+                </span>
+                <span className="font-mono text-xs text-[#525B6C]">Zero Blind Signing</span>
+              </div>
+
+              <h3 className="text-2xl font-bold tracking-tight text-[#0B0F17]">
+                Every layer is opened before the stamp is touched.
+              </h3>
+
+              <div className="overflow-hidden rounded-2xl border border-[#E2E6EE] bg-[#F7F9FC] p-3">
+                <img
+                  src="/illustrations/xray-conveyor.jpg"
+                  alt="X-ray conveyor belt inspecting an open transparent box"
+                  className="h-48 w-full object-contain"
+                />
+              </div>
+
+              <p className="text-sm leading-relaxed text-[#525B6C]">
+                We move the wallet&apos;s master stamp behind MpcFirewall&apos;s counter. Your
+                assistant&apos;s NEAR keycard only opens our inspection window — if the package
+                fails any rule, <code className="text-[#0B0F17]">v1.signer</code> is never called.
+              </p>
+            </div>
+
+            <div className="mt-6 flex items-center justify-between rounded-2xl border border-[#A7F3D0] bg-[#ECFDF5] px-4 py-3 text-sm">
+              <span className="text-[#065F46]">Protected outcome:</span>
+              <strong className="font-bold text-[#059669]">{activeMeta.withResult}</strong>
             </div>
           </div>
         </div>
       </section>
 
-      {/* STEP 3: SHOCK-VALUE SIDE-BY-SIDE OUTCOME (WITHOUT VS WITH MPCFIREWALL) */}
-      <section className="space-y-2.5">
-        <div className="flex items-center gap-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#00ec97]/15 font-mono text-xs font-bold text-[#00ec97]">
-            3
-          </span>
-          <h2 className="text-sm font-bold uppercase tracking-wider text-[#eef2f6]">
-            The Verdict: What Happened to Your Treasury?
+      {/* =====================================================================
+          SECTION 4: 3-CELL ASYMMETRIC BENTO GRID (HOW IT FITS IN NEAR)
+         ===================================================================== */}
+      <section className="space-y-6">
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#DCE0E8] bg-white px-3.5 py-1 font-mono text-[11px] font-semibold tracking-wider text-[#1F3CFF] uppercase">
+            02 / BUILT FOR THE NEAR AGENT ECONOMY
+          </div>
+          <h2 className="text-3xl font-extrabold tracking-[-0.035em] text-[#0B0F17] sm:text-4xl">
+            How it plugs into your NEAR assistant in minutes.
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {/* Card A: Without MpcFirewall (Current NEAR Chain Signatures) */}
-          <div className="relative overflow-hidden rounded-2xl border border-[#f43f5e]/40 bg-gradient-to-b from-[#f43f5e]/10 to-[#0d1217] p-5 shadow-lg">
-            <div className="flex items-center justify-between border-b border-[#f43f5e]/30 pb-3">
-              <div className="flex items-center gap-2">
-                <Unlock className="h-5 w-5 text-[#f43f5e]" />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#f43f5e]">
-                  Without MpcFirewall (Blind Signing)
-                </span>
-              </div>
-              <span className="rounded bg-[#f43f5e]/20 px-2 py-0.5 font-mono text-[10px] font-bold text-[#f43f5e]">
-                UNPROTECTED
-              </span>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          {/* Cell 1 (7 Cols): Three Smart Spending Lanes */}
+          <div className="flex flex-col justify-between rounded-[24px] border border-[#DCE0E8] bg-white p-7 lg:col-span-7">
+            <div className="space-y-3">
+              <h3 className="text-xl font-bold tracking-tight text-[#0B0F17]">
+                Company Expense Rules for Your AI Assistant
+              </h3>
+              <p className="text-sm leading-relaxed text-[#525B6C]">
+                Routine errands under <strong>$100 USDC</strong> pass automatically. Mid-sized bills
+                (<strong>$100–$500 USDC</strong>) pause and create a human team vote on{' '}
+                <strong>Trezu / SputnikDAO</strong>. Scams and unlimited approvals hit a brick wall.
+              </p>
             </div>
 
-            <div className="mt-4 space-y-3 text-xs">
-              <div>
-                <span className="text-[#8b9bb0]">What NEAR validators &amp; Function Call Keys saw:</span>
-                <div className="mt-1 break-all rounded border border-[#1e2935] bg-[#090d11] p-2 font-mono text-[11px] text-[#f59e0b]">
-                  {record?.decoded.sighashPayloadHex || '0x7a2d40fdb3a173f09524c6f82439f4edba352f082853f4db0d6c01dd7e63cf55'}
-                </div>
-                <div className="mt-1 text-[11px] text-[#8b9bb0]">
-                  An opaque 32-byte hash. Neither NEAR keys nor humans could tell what check was inside.
-                </div>
-              </div>
+            <div className="my-5 overflow-hidden rounded-2xl border border-[#E2E6EE] bg-[#F7F9FC] p-3">
+              <img
+                src="/illustrations/three-lanes.jpg"
+                alt="Three spending lanes: green auto-pass, amber human team vote, red blocked wall"
+                className="h-52 w-full object-contain"
+              />
+            </div>
 
-              <div className="rounded-xl border border-[#f43f5e]/30 bg-[#f43f5e]/15 p-3">
-                <div className="flex items-center gap-2 font-bold text-[#fecdd3]">
-                  <TrendingDown className="h-4 w-4 text-[#f43f5e]" />
-                  <span>Unprotected Outcome:</span>
-                </div>
-                <div className="mt-1 font-semibold text-[#fecdd3]">{meta.unprotectedOutcome}</div>
-                <div className="mt-1 text-base font-bold text-[#f43f5e]">{meta.financialImpact}</div>
+            <div className="grid grid-cols-3 gap-2.5 text-center text-xs font-semibold">
+              <div className="rounded-xl bg-[#ECFDF5] py-2 text-[#059669]">
+                &le; $100 Auto-Signed
+              </div>
+              <div className="rounded-xl bg-[#FFFBEB] py-2 text-[#D97706]">
+                $100–$500 Team Vote
+              </div>
+              <div className="rounded-xl bg-[#FFF1F2] py-2 text-[#E11D48]">
+                Scams Blocked ($0)
               </div>
             </div>
           </div>
 
-          {/* Card B: With MpcFirewall (Zero-Blind-Signing) */}
-          <div
-            className={`relative overflow-hidden rounded-2xl border p-5 shadow-lg transition-all ${
-              isApproved
-                ? 'border-[#00ec97]/60 bg-gradient-to-b from-[#00ec97]/15 to-[#0d1217] shadow-[0_10px_35px_-10px_rgba(0,236,151,0.25)]'
-                : isEscalated
-                  ? 'border-[#f59e0b]/60 bg-gradient-to-b from-[#f59e0b]/15 to-[#0d1217] shadow-[0_10px_35px_-10px_rgba(245,158,11,0.25)]'
-                  : 'border-[#00ec97]/40 bg-gradient-to-b from-[#00ec97]/10 to-[#0d1217]'
-            }`}
-          >
-            <div className="flex items-center justify-between border-b border-[#00ec97]/30 pb-3">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="h-5 w-5 text-[#00ec97]" />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#00ec97]">
-                  With MpcFirewall (Protected Flow)
-                </span>
+          {/* Cell 2 (5 Cols, Cobalt Tinted Surface): Private Lie Detector */}
+          <div className="flex flex-col justify-between rounded-[24px] border border-[#C7D2FE] bg-[#EEF2FF] p-7 lg:col-span-5">
+            <div className="space-y-3">
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#1F3CFF]">
+                <Cpu className="h-3.5 w-3.5" />
+                NEAR AI Cloud Confidential Enclave
               </div>
-              <span className="rounded bg-[#00ec97]/20 px-2 py-0.5 font-mono text-[10px] font-bold text-[#00ec97]">
-                ZERO BLIND SIGNING
-              </span>
+              <h3 className="text-xl font-bold tracking-tight text-[#0B0F17]">
+                The Private AI Lie Detector
+              </h3>
+              <p className="text-sm leading-relaxed text-[#374151]">
+                Before signing, a confidential check inside NEAR AI Cloud compares what your
+                assistant <em>claimed</em> it was doing against what the unpacked math actually does
+                — keeping your private prompts secret.
+              </p>
             </div>
 
-            <div className="mt-4 space-y-3 text-xs">
-              {record ? (
-                <>
-                  <div
-                    className={`rounded-xl border p-3 ${
-                      isApproved
-                        ? 'border-[#00ec97]/40 bg-[#00ec97]/15'
-                        : isEscalated
-                          ? 'border-[#f59e0b]/40 bg-[#f59e0b]/15'
-                          : 'border-[#00ec97]/40 bg-[#00ec97]/15'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-xs font-bold text-[#eef2f6]">{record.decision.outcome}</span>
-                      <span className="rounded bg-[#070a0d] px-2 py-0.5 font-mono text-[10px] text-[#00ec97]">
-                        {isBlocked ? '🛡️ INTERCEPTED AT $0' : isApproved ? '✅ SIGNED' : '🏛️ ESCALATED'}
-                      </span>
-                    </div>
-                    <ul className="mt-2 space-y-1 text-xs text-[#eef2f6]">
-                      {record.decision.reasons.map((r, i) => (
-                        <li key={i}>• {r}</li>
-                      ))}
-                    </ul>
-                  </div>
+            <div className="my-5 overflow-hidden rounded-2xl border border-[#C7D2FE] bg-white p-3">
+              <img
+                src="/illustrations/ai-assistant.jpg"
+                alt="Polite AI assistant with a sneaky prompt-injection bug"
+                className="h-48 w-full object-contain"
+              />
+            </div>
 
-                  <div className="rounded-xl border border-[#1e2935] bg-[#090d11] p-3 text-xs text-[#8b9bb0]">
-                    <span className="font-semibold text-[#eef2f6]">Protected Treasury Impact:</span>
-                    <div className="mt-1 text-sm font-bold text-[#00ec97]">
-                      {isBlocked
-                        ? '🛡️ $0.00 Lost — Malicious Signature Blocked Before v1.signer'
-                        : isApproved
-                          ? '✅ $25.00 USDC Authorized & Stamped Safely'
-                          : '🏛️ Paused — Sent to Trezu / SputnikDAO Multisig Proposal'}
-                    </div>
+            <div className="rounded-xl bg-white px-4 py-2.5 text-xs font-medium text-[#0B0F17]">
+              Catches prompt-injected assistants before a single cent leaves your wallet.
+            </div>
+          </div>
+
+          {/* Cell 3 (12 Cols): 3-Step Drop-In Integration */}
+          <div className="grid grid-cols-1 items-center gap-8 rounded-[24px] border border-[#DCE0E8] bg-white p-7 lg:col-span-12 lg:grid-cols-12">
+            <div className="overflow-hidden rounded-2xl border border-[#E2E6EE] bg-[#F7F9FC] p-3 lg:col-span-4">
+              <img
+                src="/illustrations/multichain-passport.jpg"
+                alt="One protective shield over Bitcoin, Ethereum, and NEAR coins"
+                className="h-44 w-full object-contain"
+              />
+            </div>
+
+            <div className="space-y-5 lg:col-span-8">
+              <div>
+                <h3 className="text-xl font-bold tracking-tight text-[#0B0F17]">
+                  Drop Into Any Existing NEAR Agent Flow in 3 Steps
+                </h3>
+                <p className="mt-1 text-sm text-[#525B6C]">
+                  Keep your existing AI brain, NEAR account, and Chain Signatures — just place
+                  MpcFirewall in the middle.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="rounded-2xl border border-[#E6E9F0] bg-[#FAFBFD] p-4">
+                  <div className="font-mono text-xs font-bold text-[#1F3CFF]">STEP 01</div>
+                  <div className="mt-1 text-sm font-bold text-[#0B0F17]">
+                    Park the Checkbook
                   </div>
-                </>
-              ) : (
-                <div className="flex flex-col items-center justify-center p-8 text-center text-xs text-[#8b9bb0]">
-                  <p>Click &ldquo;Run Inspection &amp; Intercept Attacks&rdquo; above to watch the firewall evaluate this transaction.</p>
+                  <p className="mt-1 text-xs leading-relaxed text-[#525B6C]">
+                    Point your wallet&apos;s derivation path to <code className="text-[#0B0F17]">mpc-firewall.testnet</code> and add your assistant to <code className="text-[#0B0F17]">authorized_agents</code>.
+                  </p>
                 </div>
-              )}
+
+                <div className="rounded-2xl border border-[#E6E9F0] bg-[#FAFBFD] p-4">
+                  <div className="font-mono text-xs font-bold text-[#1F3CFF]">STEP 02</div>
+                  <div className="mt-1 text-sm font-bold text-[#0B0F17]">
+                    Scope the Keycard
+                  </div>
+                  <p className="mt-1 text-xs leading-relaxed text-[#525B6C]">
+                    Restrict the assistant&apos;s NEAR Function Call Key so it can only call MpcFirewall — never <code className="text-[#0B0F17]">v1.signer</code> directly.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-[#E6E9F0] bg-[#FAFBFD] p-4">
+                  <div className="font-mono text-xs font-bold text-[#1F3CFF]">STEP 03</div>
+                  <div className="mt-1 text-sm font-bold text-[#0B0F17]">
+                    Send Unsealed Bytes
+                  </div>
+                  <p className="mt-1 text-xs leading-relaxed text-[#525B6C]">
+                    Pass the raw unsigned transaction + plain-English reason. MpcFirewall verifies, hashes on-chain, and calls <code className="text-[#0B0F17]">v1.signer</code>.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* COLLAPSIBLE DEEP PROTOCOL PROOF (FOR TECHNICAL JUDGES) */}
-      <section className="rounded-xl border border-[#1e2935] bg-[#0d1217] p-4">
+      {/* =====================================================================
+          SECTION 5: QUIET CRYPTOGRAPHIC PROOF DRAWER (FOR TECHNICAL JUDGES)
+         ===================================================================== */}
+      <section className="overflow-hidden rounded-[24px] border border-[#DCE0E8] bg-white">
         <button
           type="button"
-          onClick={() => setShowDeepProof((prev) => !prev)}
-          className="flex w-full items-center justify-between text-left text-xs font-semibold text-[#eef2f6] hover:text-[#00ec97]"
+          onClick={() => setShowProofDrawer((v) => !v)}
+          className="flex w-full items-center justify-between px-7 py-5 text-left transition-colors hover:bg-[#FAFBFD]"
         >
-          <div className="flex items-center gap-2">
-            <Code2 className="h-4 w-4 text-[#00ec97]" />
-            <span>Deep Cryptographic Disassembly &amp; On-Chain Verification Proof</span>
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F4F5F8] text-[#0B0F17]">
+              <Code2 className="h-4 w-4" />
+            </div>
+            <div>
+              <div className="text-sm font-bold text-[#0B0F17]">
+                Technical Judge Proof: Raw RLP Disassembly, Call Tree &amp; NEAR Payloads
+              </div>
+              <div className="text-xs text-[#525B6C]">
+                Expand to inspect byte-level AST, v1.signer cross-contract promises, SputnikDAO proposals, and live NEAR Intents quotes
+              </div>
+            </div>
           </div>
-          <span className="font-mono text-[11px] text-[#8b9bb0]">
-            {showDeepProof ? 'Hide Details ▲' : 'Show Details ▼'}
+
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#DCE0E8] bg-[#FAFBFD] px-3.5 py-1.5 text-xs font-semibold text-[#0B0F17]">
+            <span>{showProofDrawer ? 'Hide Proof' : 'Inspect Proof'}</span>
+            <ChevronDown
+              className={`h-3.5 w-3.5 transition-transform ${showProofDrawer ? 'rotate-180' : ''}`}
+            />
           </span>
         </button>
 
-        {showDeepProof && record && (
-          <div className="mt-4 space-y-3 border-t border-[#1e2935] pt-4 text-xs">
-            {/* Decoded AST Hierarchy */}
-            <div className="rounded-lg border border-[#1e2935] bg-[#090d11] p-3">
-              <div className="mb-2 font-mono text-[11px] font-semibold text-[#00ec97]">
-                Decoded Transaction Structure &amp; Unwrapped Call Tree
-              </div>
-              <pre className="max-h-60 overflow-auto font-mono text-[10px] leading-relaxed text-[#8b9bb0]">
-                {JSON.stringify(record.decoded, null, 2)}
-              </pre>
-            </div>
-
-            {/* Cross-Contract Dispatch or DAO Proposal */}
-            {record.mpcDispatch && (
-              <div className="rounded-lg border border-[#00ec97]/30 bg-[#090d11] p-3">
-                <div className="mb-1 font-mono text-[11px] font-semibold text-[#00ec97]">
-                  Authorized Cross-Contract Promise: {record.mpcDispatch.firewallContractMethod} &rarr;{' '}
-                  {record.mpcDispatch.signerContractId}
+        {showProofDrawer && record && (
+          <div className="space-y-4 border-t border-[#E2E6EE] bg-[#FAFBFD] p-7 text-xs">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <div className="rounded-2xl border border-[#DCE0E8] bg-white p-4">
+                <div className="mb-2 font-mono text-[11px] font-bold text-[#0B0F17]">
+                  Unwrapped Transaction AST ({record.decoded.kind.toUpperCase()})
                 </div>
-                <pre className="max-h-40 overflow-auto font-mono text-[10px] text-[#eef2f6]">
-                  {JSON.stringify(record.mpcDispatch, null, 2)}
+                <pre className="max-h-60 overflow-auto font-mono text-[11px] leading-relaxed text-[#525B6C]">
+                  {JSON.stringify(record.decoded, null, 2)}
                 </pre>
               </div>
-            )}
 
-            {record.daoProposalPayload && (
-              <div className="rounded-lg border border-[#f59e0b]/30 bg-[#090d11] p-3">
-                <div className="mb-1 font-mono text-[11px] font-semibold text-[#f59e0b]">
-                  Generated SputnikDAO / Trezu Multisig Proposal ({record.daoProposalPayload.contractId})
+              <div className="space-y-4">
+                {record.mpcDispatch && (
+                  <div className="rounded-2xl border border-[#A7F3D0] bg-white p-4">
+                    <div className="mb-2 font-mono text-[11px] font-bold text-[#059669]">
+                      Cross-Contract Promise ({record.mpcDispatch.firewallContractMethod} &rarr;{' '}
+                      {record.mpcDispatch.signerContractId})
+                    </div>
+                    <pre className="max-h-48 overflow-auto font-mono text-[11px] text-[#0B0F17]">
+                      {JSON.stringify(record.mpcDispatch, null, 2)}
+                    </pre>
+                  </div>
+                )}
+
+                {record.daoProposalPayload && (
+                  <div className="rounded-2xl border border-[#FDE68A] bg-white p-4">
+                    <div className="mb-2 font-mono text-[11px] font-bold text-[#D97706]">
+                      Generated Trezu / SputnikDAO Proposal ({record.daoProposalPayload.contractId})
+                    </div>
+                    <pre className="max-h-48 overflow-auto font-mono text-[11px] text-[#0B0F17]">
+                      {JSON.stringify(record.daoProposalPayload, null, 2)}
+                    </pre>
+                  </div>
+                )}
+
+                {!record.mpcDispatch && !record.daoProposalPayload && (
+                  <div className="rounded-2xl border border-[#FECDD3] bg-[#FFF1F2] p-4 text-[#9F1239]">
+                    <div className="font-bold">Zero Dispatch Payload Generated ($0 Signed)</div>
+                    <p className="mt-1 text-xs">
+                      Because MpcFirewall blocked this transaction during on-chain verification, no
+                      cross-contract call was ever dispatched to <code>v1.signer-prod.testnet</code>.
+                    </p>
+                  </div>
+                )}
+
+                <div className="rounded-2xl border border-[#DCE0E8] bg-white p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-semibold text-[#0B0F17]">
+                      NEAR Intents 1Click Confidential Quote
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handlePreviewIntents}
+                      disabled={quoteLoading}
+                      className="rounded-full bg-[#0B0F17] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#1F3CFF] disabled:opacity-50"
+                    >
+                      {quoteLoading ? 'Querying 1Click API…' : 'Preview Live Confidential Quote'}
+                    </button>
+                  </div>
+                  {quoteOutput && (
+                    <pre className="mt-3 max-h-40 overflow-auto rounded-xl bg-[#F4F5F8] p-3 font-mono text-[10px] text-[#525B6C]">
+                      {quoteOutput}
+                    </pre>
+                  )}
                 </div>
-                <pre className="max-h-40 overflow-auto font-mono text-[10px] text-[#eef2f6]">
-                  {JSON.stringify(record.daoProposalPayload, null, 2)}
-                </pre>
               </div>
-            )}
-
-            {/* NEAR Intents Quote */}
-            <div className="border-t border-[#1e2935] pt-3">
-              <button
-                type="button"
-                onClick={handlePreviewIntents}
-                disabled={quoteLoading}
-                className="flex items-center gap-2 rounded-lg border border-[#1e2935] bg-[#131a21] px-3 py-2 text-xs text-[#eef2f6] hover:border-[#00ec97]"
-              >
-                <Zap className="h-3.5 w-3.5 text-[#00ec97]" />
-                <span>
-                  {quoteLoading
-                    ? 'Querying 1Click API…'
-                    : 'Preview Confidential Intents Treasury Refuel Quote (confidentiality: advanced)'}
-                </span>
-              </button>
-              {quoteOutput && (
-                <pre className="mt-2 max-h-40 overflow-auto rounded-lg border border-[#1e2935] bg-[#090d11] p-2.5 font-mono text-[10px] text-[#8b9bb0]">
-                  {quoteOutput}
-                </pre>
-              )}
             </div>
           </div>
         )}
