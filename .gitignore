@@ -1,0 +1,24 @@
+# Dependencies & Build Outputs
+node_modules/
+.next/
+dist/
+out/
+coverage/
+target/
+*.tsbuildinfo
+
+# Secrets & Personal Submission Payloads
+.env
+.env.*
+!.env.example
+submission-payload.json
+*.local.json
+
+# Runtime Data
+.mpc-firewall-data/
+
+# OS & Logs
+.DS_Store
+Thumbs.db
+*.log
+

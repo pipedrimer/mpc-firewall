@@ -1,0 +1,20 @@
+[package]
+name = "mpc-firewall"
+version = "0.1.0"
+edition = "2021"
+description = "NEAR smart contract owning MPC Chain Signatures derivation paths; decodes raw unsigned EVM RLP/ABI calldata and Bitcoin raw tx bytes on-chain before dispatching keccak256/sha256d payloads to v1.signer."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+near-sdk = "=5.12.0"
+
+[profile.release]
+codegen-units = 1
+opt-level = "z"
+lto = true
+debug = false
+panic = "abort"
+overflow-checks = true
+

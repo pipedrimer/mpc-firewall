@@ -1,0 +1,20 @@
+{
+  "requestId": "REPLACE-WITH-UUID-GENERATED-ONCE",
+  "projectName": "MpcFirewall",
+  "leadName": "REPLACE_WITH_TEAM_LEAD_NAME",
+  "email": "REPLACE_WITH_UNIQUE_EMAIL",
+  "size": "1",
+  "tracks": [
+    "security",
+    "defi",
+    "agents",
+    "privacy",
+    "social"
+  ],
+  "nearAddress": "REPLACE_WITH_MAINNET_NEAR_ACCOUNT",
+  "projectUrl": "https://github.com/REPLACE_ORG/mpc-firewall",
+  "demoUrl": "https://x.com/REPLACE_HANDLE/status/0000000000000000000",
+  "idea": "MpcFirewall eliminates the 32-byte blind-signing vulnerability in NEAR Chain Signatures (v1.signer). Existing NEAR agent-security tools rely on Function Call Keys, which only inspect NEAR-native calls and are completely blind when an agent passes an opaque 32-byte keccak256 digest to v1.signer to sign Ethereum, Base, Arbitrum, or Bitcoin transactions—allowing a compromised agent to disguise ERC20.approve(drainer, MaxUint256) or nested multicall drains behind a valid Function Call Key. MpcFirewall solves this by owning the MPC derivation path inside a Rust NEAR smart contract (contracts/mpc-firewall): agents must submit raw unsigned EVM EIP-1559/Legacy RLP bytes or raw Bitcoin tx bytes instead of hashes. The contract decodes RLP and ABI calldata recursively on-chain (catching unlimited approvals, setApprovalForAll, disallowed chainIds, and smuggled multicall drains), computes keccak256/sha256d on-chain, enforces autonomous caps, escalates oversized valid txs to Trezu/SputnikDAO multisig proposals, and runs confidential intent-vs-calldata risk checks inside NEAR AI Cloud TEE.",
+  "consent": false
+}
+
