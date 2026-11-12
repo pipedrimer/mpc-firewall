@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  --ground: #F4F5F8;
+  --ground: #F2F4F9;
   --surface: #FFFFFF;
   --obsidian: #0B0F17;
   --ink: #0B0F17;
-  --muted: #525B6C;
-  --line: #E2E6EE;
+  --muted: #4A5568;
+  --line: #DCE2EE;
   --accent: #1F3CFF;
   --safe: #059669;
   --danger: #E11D48;
@@ -24,6 +24,13 @@ html {
 html,
 body {
   background-color: var(--ground);
+  background-image:
+    radial-gradient(circle at 12% 8%, rgba(31, 60, 255, 0.08) 0%, transparent 42%),
+    radial-gradient(circle at 88% 14%, rgba(5, 150, 105, 0.07) 0%, transparent 38%),
+    radial-gradient(circle at 50% 58%, rgba(225, 29, 72, 0.04) 0%, transparent 45%),
+    radial-gradient(rgba(11, 15, 23, 0.055) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 100% 100%, 24px 24px;
+  background-attachment: fixed;
   color: var(--ink);
   font-family: var(--font-sans);
   font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01";
@@ -48,7 +55,7 @@ button,
 }
 
 button:active:not(:disabled) {
-  transform: scale(0.98) translateY(1px);
+  transform: scale(0.985) translateY(1px);
 }
 
 .tabular-nums {
@@ -83,5 +90,21 @@ button:active:not(:disabled) {
 
 .index-row:hover {
   transform: translateY(-2px);
-  box-shadow: 0 18px 36px -16px rgba(11, 15, 23, 0.09);
+  box-shadow: 0 18px 36px -16px rgba(11, 15, 23, 0.1);
+}
+
+/* Subtle scanline grid for the dark blind-envelope side of the X-Ray stage */
+.obsidian-grid {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* Subtle blueprint grid for the X-ray interior side */
+.xray-grid {
+  background-image:
+    linear-gradient(to right, rgba(31, 60, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(31, 60, 255, 0.045) 1px, transparent 1px);
+  background-size: 28px 28px;
 }
