@@ -22,6 +22,7 @@ body {
   font-family: var(--font-sans);
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 code,
@@ -32,13 +33,89 @@ pre,
 
 button,
 [role="button"] {
-  transition: transform 120ms var(--ease-out-snappy), background-color 150ms ease, border-color 150ms ease;
+  transition: transform 140ms var(--ease-out-snappy), background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
 }
 
 button:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(0.97) translateY(1px);
 }
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
+
+/* 3D Perspective & Spatial Depth */
+.perspective-container {
+  perspective: 1200px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.card-3d {
+  transform-style: preserve-3d;
+  transition: transform 250ms var(--ease-out-snappy), box-shadow 250ms ease, border-color 200ms ease;
+}
+
+.card-3d:hover {
+  transform: translateY(-4px) rotateX(2deg) rotateY(-1deg);
+  box-shadow: 0 20px 40px -15px rgba(0, 236, 151, 0.12), 0 0 0 1px rgba(0, 236, 151, 0.25);
+}
+
+.card-3d-danger:hover {
+  transform: translateY(-4px) rotateX(2deg) rotateY(-1deg);
+  box-shadow: 0 20px 40px -15px rgba(244, 63, 94, 0.18), 0 0 0 1px rgba(244, 63, 94, 0.3);
+}
+
+.card-3d-amber:hover {
+  transform: translateY(-4px) rotateX(2deg) rotateY(-1deg);
+  box-shadow: 0 20px 40px -15px rgba(245, 158, 11, 0.18), 0 0 0 1px rgba(245, 158, 11, 0.3);
+}
+
+/* Cyber Scanning Line Animation */
+@keyframes xRayScan {
+  0% {
+    top: -10%;
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    top: 110%;
+    opacity: 0;
+  }
+}
+
+.animate-xray-scan {
+  animation: xRayScan 2.4s ease-in-out infinite;
+}
+
+/* Glowing Pulse Line */
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.02);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+
+/* Glassy Card Highlights */
+.glass-panel {
+  background: linear-gradient(135deg, rgba(19, 26, 33, 0.85) 0%, rgba(13, 18, 23, 0.95) 100%);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+}
+

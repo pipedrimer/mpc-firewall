@@ -6,8 +6,11 @@ import { HeaderStatusBar, type HealthSnapshot, type NearRpcSnapshot } from '@/co
 import { PolicyRail } from '@/components/PolicyRail';
 import { TxWorkbench, type ScenarioPresetView } from '@/components/TxWorkbench';
 import { ProofInspector } from '@/components/ProofInspector';
+import { VisualStoryView } from '@/components/VisualStoryView';
+import { Sparkles, Terminal } from 'lucide-react';
 
 export default function HomePage() {
+  const [viewMode, setViewMode] = useState<'story' | 'protocol'>('story');
   const [health, setHealth] = useState<HealthSnapshot | null>(null);
   const [rpc, setRpc] = useState<NearRpcSnapshot | null>(null);
   const [checkingRpc, setCheckingRpc] = useState(false);
@@ -158,44 +161,102 @@ export default function HomePage() {
       />
 
       <main className="mx-auto max-w-[1440px] px-5 py-5">
+        {/* Mode Switcher Banner */}
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#1e2935] bg-[#0d1217] p-2.5 shadow-md">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#8b9bb0] ml-2">
+              Console View:
+            </span>
+            <div className="flex rounded-xl border border-[#1e2935] bg-[#090d11] p-1">
+              <button
+                type="button"
+                onClick={() => setViewMode('story')}
+                className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                  viewMode === 'story'
+                    ? 'bg-gradient-to-r from-[#00ec97] to-[#10b981] text-[#070a0d] shadow-[0_0_15px_rgba(0,236,151,0.35)]'
+                    : 'text-[#8b9bb0] hover:text-[#eef2f6]'
+                }`}
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                <span>Visual Story &amp; Attack Simulator</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('protocol')}
+                className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                  viewMode === 'protocol'
+                    ? 'bg-[#1e2935] text-[#00ec97] shadow-sm'
+                    : 'text-[#8b9bb0] hover:text-[#eef2f6]'
+                }`}
+              >
+                <Terminal className="h-3.5 w-3.5" />
+                <span>Deep Protocol &amp; Policy Inspector</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="text-xs text-[#8b9bb0] mr-2 hidden sm:block">
+            {viewMode === 'story'
+              ? '✨ Recommended for Hackathon Demo Video & Executive Presentation'
+              : '🔬 Low-Level RLP Byte Disassembly & SputnikDAO Proposals'}
+          </div>
+        </div>
+
         {errorMsg && (
           <div className="mb-4 rounded-lg border border-[#f43f5e]/40 bg-[#f43f5e]/10 px-4 py-2.5 text-xs text-[#fecdd3]">
             {errorMsg}
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
-          <div className="lg:col-span-3">
-            <PolicyRail
-              policy={policy}
-              saving={savingPolicy}
-              adminAuthEnabled={Boolean(health?.adminAuthEnabled)}
-              adminToken={adminToken}
-              onChangeAdminToken={setAdminToken}
-              onToggleRule={handleTogglePolicy}
-            />
-          </div>
+        {viewMode === 'story' ? (
+          <VisualStoryView
+            presets={presets}
+            selectedPresetId={selectedPresetId}
+            onSelectPreset={handleSelectPreset}
+            record={latestRecord}
+            policy={policy}
+            loading={inspecting}
+            onInspect={handleInspect}
+            dailySpentUnits={dailySpentUnits}
+            onResetDemo={handleResetDemo}
+            onCheckRpc={handleProbeRpc}
+            checkingRpc={checkingRpc}
+            rpcRootKey={rpc?.mpcRootPublicKey}
+          />
+        ) : (
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+            <div className="lg:col-span-3">
+              <PolicyRail
+                policy={policy}
+                saving={savingPolicy}
+                adminAuthEnabled={Boolean(health?.adminAuthEnabled)}
+                adminToken={adminToken}
+                onChangeAdminToken={setAdminToken}
+                onToggleRule={handleTogglePolicy}
+              />
+            </div>
 
-          <div className="lg:col-span-5">
-            <TxWorkbench
-              presets={presets}
-              selectedPresetId={selectedPresetId}
-              chainKind={chainKind}
-              agentIntent={agentIntent}
-              rawUnsignedHex={rawUnsignedHex}
-              loading={inspecting}
-              onSelectPreset={handleSelectPreset}
-              onChangeChainKind={setChainKind}
-              onChangeIntent={setAgentIntent}
-              onChangeRawHex={setRawUnsignedHex}
-              onInspect={handleInspect}
-            />
-          </div>
+            <div className="lg:col-span-5">
+              <TxWorkbench
+                presets={presets}
+                selectedPresetId={selectedPresetId}
+                chainKind={chainKind}
+                agentIntent={agentIntent}
+                rawUnsignedHex={rawUnsignedHex}
+                loading={inspecting}
+                onSelectPreset={handleSelectPreset}
+                onChangeChainKind={setChainKind}
+                onChangeIntent={setAgentIntent}
+                onChangeRawHex={setRawUnsignedHex}
+                onInspect={handleInspect}
+              />
+            </div>
 
-          <div className="lg:col-span-4">
-            <ProofInspector record={latestRecord} />
+            <div className="lg:col-span-4">
+              <ProofInspector record={latestRecord} />
+            </div>
           </div>
-        </div>
+        )}
 
         {history.length > 0 && (
           <section className="mt-5 rounded-xl border border-[#1e2935] bg-[#0d1217] p-4">
