@@ -26,6 +26,8 @@ export default function HomePage() {
   const [rawUnsignedHex, setRawUnsignedHex] = useState('');
 
   const [inspecting, setInspecting] = useState(false);
+  const [scanPulseId, setScanPulseId] = useState(0);
+  const [lastScanDurationMs, setLastScanDurationMs] = useState<number | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [latestRecord, setLatestRecord] = useState<FirewallEvaluationRecord | null>(null);
   const [history, setHistory] = useState<FirewallEvaluationRecord[]>([]);
@@ -35,31 +37,41 @@ export default function HomePage() {
       targetChainKind: FirewallChainKind,
       targetHex: string,
       targetIntent: string,
-      resetFirst = false
+      resetFirst = false,
+      animateSweep = true
     ) => {
       setInspecting(true);
       setErrorMsg(null);
+      if (animateSweep) {
+        setScanPulseId((n) => n + 1);
+      }
+      const startPerf = performance.now();
       try {
         if (resetFirst) {
           const headers: Record<string, string> = {};
           if (adminToken.trim()) headers['x-admin-token'] = adminToken.trim();
           await fetch('/api/policy', { method: 'POST', headers });
         }
-        const res = await fetch('/api/inspect', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chainKind: targetChainKind,
-            rawUnsignedHex: targetHex,
-            agentIntent: targetIntent
-          })
-        });
+        const [res] = await Promise.all([
+          fetch('/api/inspect', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chainKind: targetChainKind,
+              rawUnsignedHex: targetHex,
+              agentIntent: targetIntent
+            })
+          }),
+          // Ensure the user sees the X-Ray laser scan animation when clicking Scan
+          animateSweep ? new Promise((r) => setTimeout(r, 420)) : Promise.resolve()
+        ]);
         const json = await res.json();
         if (!res.ok) {
           throw new Error(json.error?.message || 'Inspection failed');
         }
         const record: FirewallEvaluationRecord = json.data.record;
         setLatestRecord(record);
+        setLastScanDurationMs(Math.max(8, Math.round(performance.now() - startPerf)));
         if (json.data.dailyTokenSpentUnits !== undefined) {
           setDailySpentUnits(json.data.dailyTokenSpentUnits);
         }
@@ -99,7 +111,13 @@ export default function HomePage() {
           if (cached) {
             setLatestRecord(cached);
           } else {
-            void executeInspectPayload(firstPreset.chainKind, firstPreset.rawUnsignedHex, firstPreset.agentIntent);
+            void executeInspectPayload(
+              firstPreset.chainKind,
+              firstPreset.rawUnsignedHex,
+              firstPreset.agentIntent,
+              false,
+              false
+            );
           }
         }
       }
@@ -179,17 +197,50 @@ export default function HomePage() {
       );
       if (cached) {
         setLatestRecord(cached);
+        setScanPulseId((n) => n + 1);
       } else {
-        void executeInspectPayload(preset.chainKind, preset.rawUnsignedHex, preset.agentIntent);
+        void executeInspectPayload(
+          preset.chainKind,
+          preset.rawUnsignedHex,
+          preset.agentIntent,
+           true,
+          true
+        );
       }
     }
   }
 
   async function handleInspect() {
-    const shouldResetReplayInStory =
-      viewMode === 'story' &&
-      history.some((r) => r.agentIntent === agentIntent && r.decision.outcome !== 'BLOCKED');
-    await executeInspectPayload(chainKind, rawUnsignedHex, agentIntent, shouldResetReplayInStory);
+    // Self-heal if presets hadn't loaded yet (e.g. if tab opened during build)
+    let targetKind = chainKind;
+    let targetHex = rawUnsignedHex;
+    let targetIntent = agentIntent;
+
+    if (!targetHex.trim()) {
+      try {
+        const pRes = await fetch('/api/presets');
+        const pJson = await pRes.json();
+        const loadedPresets: ScenarioPresetView[] = pJson.data?.presets ?? [];
+        if (loadedPresets.length > 0) {
+          setPresets(loadedPresets);
+          const first = loadedPresets[0];
+          setSelectedPresetId(first.id);
+          setChainKind(first.chainKind);
+          setAgentIntent(first.agentIntent);
+          setRawUnsignedHex(first.rawUnsignedHex);
+          targetKind = first.chainKind;
+          targetHex = first.rawUnsignedHex;
+          targetIntent = first.agentIntent;
+        }
+      } catch {
+        // Handled by executeInspectPayload
+      }
+    }
+
+    // In Story Mode, always reset replay state before scanning so clicking "Scan Selected Errand"
+    // repeatedly on any scenario always shows its canonical verdict and sweeps the X-Ray curtain.
+    const shouldResetReplayInStory = viewMode === 'story';
+    await executeInspectPayload(targetKind, targetHex, targetIntent, shouldResetReplayInStory, true);
   }
 
   return (
@@ -221,6 +272,8 @@ export default function HomePage() {
             record={latestRecord}
             policy={policy}
             loading={inspecting}
+            scanPulseId={scanPulseId}
+            lastScanDurationMs={lastScanDurationMs}
             onInspect={handleInspect}
           />
         ) : (

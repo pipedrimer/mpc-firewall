@@ -28,6 +28,8 @@ interface VisualStoryViewProps {
   record: FirewallEvaluationRecord | null;
   policy: FirewallPolicy | null;
   loading: boolean;
+  scanPulseId?: number;
+  lastScanDurationMs?: number | null;
   onInspect: () => void;
 }
 
@@ -145,6 +147,8 @@ export function VisualStoryView({
   onSelectPreset,
   record,
   loading,
+  scanPulseId = 0,
+  lastScanDurationMs = null,
   onInspect
 }: VisualStoryViewProps) {
   const [showProofDrawer, setShowProofDrawer] = useState(false);
@@ -209,26 +213,54 @@ export function VisualStoryView({
             raw transaction package on NEAR and blocks hidden traps cold.
           </p>
 
-          <div className="flex flex-wrap items-center gap-3.5 pt-1">
-            <button
-              type="button"
-              onClick={onInspect}
-              disabled={loading}
-              className="btn-roll group inline-flex items-center gap-2.5 rounded-full bg-gradient-to-r from-[#1F3CFF] to-[#1528B0] px-7 py-3.5 text-sm font-bold text-white shadow-[0_14px_30px_-8px_rgba(31,60,255,0.5)] hover:from-[#0B0F17] hover:to-[#1E293B] disabled:opacity-50"
-            >
-              <span className="btn-roll-inner">
-                <span>{loading ? 'Scanning Envelope…' : 'Scan Selected Errand'}</span>
-                <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-              </span>
-            </button>
+          <div className="space-y-3 pt-1">
+            <div className="flex flex-wrap items-center gap-3.5">
+              <button
+                type="button"
+                onClick={onInspect}
+                disabled={loading}
+                className="btn-roll group inline-flex cursor-pointer items-center gap-2.5 rounded-full bg-gradient-to-r from-[#1F3CFF] to-[#1528B0] px-7 py-3.5 text-sm font-bold text-white shadow-[0_14px_30px_-8px_rgba(31,60,255,0.5)] hover:from-[#0B0F17] hover:to-[#1E293B] disabled:opacity-75"
+              >
+                <span className="btn-roll-inner">
+                  <span>
+                    {loading
+                      ? `X-Raying Errand ${activeMeta.index}…`
+                      : `Scan Errand ${activeMeta.index} (${activeMeta.shortLabel})`}
+                  </span>
+                  <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                </span>
+              </button>
 
-            <a
-              href="#scenarios"
-              className="inline-flex items-center gap-1.5 rounded-full border border-[#DCE2EE] bg-white px-5 py-3.5 text-sm font-bold text-[#0B0F17] shadow-2xs hover:border-[#1F3CFF] hover:text-[#1F3CFF]"
-            >
-              <span>Explore All 7 Scenarios</span>
-              <ArrowDownRight className="h-4 w-4 text-[#1F3CFF]" />
-            </a>
+              <a
+                href="#scenarios"
+                className="inline-flex items-center gap-1.5 rounded-full border border-[#DCE2EE] bg-white px-5 py-3.5 text-sm font-bold text-[#0B0F17] shadow-2xs hover:border-[#1F3CFF] hover:text-[#1F3CFF]"
+              >
+                <span>Explore All 7 Scenarios</span>
+                <ArrowDownRight className="h-4 w-4 text-[#1F3CFF]" />
+              </a>
+            </div>
+
+            {/* Live Scan Feedback Pill */}
+            {(loading || scanPulseId > 0) && (
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#DCE2EE] bg-white/90 px-3.5 py-1.5 text-xs font-semibold text-[#0B0F17] shadow-2xs">
+                <span
+                  className={`h-2 w-2 rounded-full ${
+                    loading
+                      ? 'animate-ping bg-[#1F3CFF]'
+                      : record?.decision.outcome === 'BLOCKED'
+                        ? 'bg-[#E11D48]'
+                        : record?.decision.outcome === 'ESCALATE_TO_DAO'
+                          ? 'bg-[#D97706]'
+                          : 'bg-[#059669]'
+                  }`}
+                />
+                <span className="font-mono text-[11px]">
+                  {loading
+                    ? `Unpacking RLP/ABI bytes & verifying policy on NEAR…`
+                    : `Scan #${scanPulseId} Complete • ${activeMeta.humanTitle} → ${record?.decision.outcome ?? 'VERIFIED'}${lastScanDurationMs ? ` (${lastScanDurationMs}ms)` : ''}`}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* 3-Color Telemetry Strip */}
@@ -265,6 +297,8 @@ export function VisualStoryView({
             meta={activeMeta}
             record={record}
             loading={loading}
+            scanPulseId={scanPulseId}
+            lastScanDurationMs={lastScanDurationMs}
             onSelectPreset={onSelectPreset}
             onInspect={onInspect}
           />

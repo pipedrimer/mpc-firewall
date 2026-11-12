@@ -39,6 +39,8 @@ interface InteractiveXRayStageProps {
   meta: ScenarioStoryMeta;
   record: FirewallEvaluationRecord | null;
   loading: boolean;
+  scanPulseId?: number;
+  lastScanDurationMs?: number | null;
   onSelectPreset: (preset: ScenarioPresetView) => void;
   onInspect: () => void;
 }
@@ -50,6 +52,7 @@ export function InteractiveXRayStage({
   meta,
   record,
   loading,
+  scanPulseId = 0,
   onSelectPreset,
   onInspect
 }: InteractiveXRayStageProps) {
@@ -91,13 +94,16 @@ export function InteractiveXRayStage({
   const isEscalated = outcome === 'ESCALATE_TO_DAO' || (!outcome && preset?.badge === 'DAO_ESCALATION');
   const isApproved = outcome === 'APPROVED_FOR_MPC_SIGN' || (!outcome && preset?.badge === 'SAFE');
 
-  // Smooth X-Ray sweep when switching scenarios
+  // Smooth X-Ray sweep when switching scenarios OR clicking "Scan Selected Errand"
   useEffect(() => {
     let frame = 0;
     const start = performance.now();
-    const duration = 640;
-    const from = 15;
-    const to = 78;
+    const duration = 720;
+    const from = 0;
+    const to = 82;
+
+    // Give the 3D hologram a spin impulse on scan
+    physicsRef.current.orbitYaw += 0.85;
 
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / duration);
@@ -111,7 +117,7 @@ export function InteractiveXRayStage({
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [preset?.id]);
+  }, [preset?.id, scanPulseId]);
 
   // 60fps True 3D Chassis Tilt + Interactive 3D Exploded-View Hologram Canvas
   useEffect(() => {
