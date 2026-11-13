@@ -224,11 +224,51 @@ export function ProofInspector({ record }: ProofInspectorProps) {
           <ArrowRightLeft className="h-3.5 w-3.5 text-[#1F3CFF]" />
           <span>{quoteLoading ? 'Querying 1Click API…' : 'Preview Confidential Intents Treasury Refuel Quote'}</span>
         </button>
-        {quoteOutput && (
+          {quoteOutput && (
           <pre className="mt-2 max-h-44 overflow-auto rounded-lg border border-[#DCE0E8] bg-[#F8F9FB] p-2.5 font-mono text-[10px] text-[#525B6C]">
             {quoteOutput}
           </pre>
         )}
+      </div>
+
+      {/* Live NEAR Testnet Deployment & Chain Signatures Proofs */}
+      <div className="rounded-lg border border-[#DCE0E8] bg-[#F8F9FB] p-3 text-[11px]">
+        <div className="font-semibold text-[#0B0F17]">Live NEAR Testnet Contract Proofs</div>
+        <div className="mt-1.5 space-y-1 font-mono text-[10px] text-[#525B6C]">
+          <div>
+            Contract:{' '}
+            <a
+              href="https://testnet.nearblocks.io/address/mpc-firewall.testnet"
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold text-[#1F3CFF] underline"
+            >
+              mpc-firewall.testnet
+            </a>
+          </div>
+          <div>
+            Deploy + Init TX:{' '}
+            <a
+              href="https://testnet.nearblocks.io/txns/3B94S9sB92jABvy2rYt4sZXiD4Rri47v3RpULScY3XQs"
+              target="_blank"
+              rel="noreferrer"
+              className="text-[#1F3CFF] underline"
+            >
+              3B94S9…Y3XQs
+            </a>
+          </div>
+          <div>
+            Live MPC Secp256k1 Sign TX:{' '}
+            <a
+              href="https://testnet.nearblocks.io/txns/9CMZemnkejMCCJHeUXHBtHp4A49T71aLyjoBBQ98ZxVN"
+              target="_blank"
+              rel="noreferrer"
+              className="text-[#059669] underline"
+            >
+              9CMZem…8ZxVN
+            </a>
+          </div>
+        </div>
       </div>
     </aside>
   );

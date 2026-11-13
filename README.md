@@ -3,6 +3,7 @@
 **Zero-blind-signing RLP, EVM ABI calldata, nested `multicall`, and Bitcoin raw-transaction firewall for NEAR Chain Signatures (`v1.signer`).**
 
 - **Live Web Console:** [https://mpc-firewall.netlify.app](https://mpc-firewall.netlify.app)
+- **Live NEAR Testnet Contract:** [`mpc-firewall.testnet`](https://testnet.nearblocks.io/address/mpc-firewall.testnet) (Deploy + Init TX: [`3B94S9sB92jABvy2rYt4sZXiD4Rri47v3RpULScY3XQs`](https://testnet.nearblocks.io/txns/3B94S9sB92jABvy2rYt4sZXiD4Rri47v3RpULScY3XQs), Live `verify_and_sign_evm -> v1.signer-prod.testnet` Secp256k1 Signature TX: [`9CMZemnkejMCCJHeUXHBtHp4A49T71aLyjoBBQ98ZxVN`](https://testnet.nearblocks.io/txns/9CMZemnkejMCCJHeUXHBtHp4A49T71aLyjoBBQ98ZxVN))
 - **License:** [MIT](./LICENSE)
 
 ---
@@ -110,7 +111,7 @@ When deploying beyond local evaluation, set these flags in `.env`:
 
 ## 6. Repository Structure & Disclosures (`Q-005`)
 
-- `contracts/mpc-firewall/src/lib.rs` — Rust NEAR smart contract (`near-sdk = "=5.12.0"`) with on-chain RLP, ABI, `multicall`, and Bitcoin output/daily-satoshi decoders + unit tests (`cargo test` and `wasm32-unknown-unknown` verified via [`.github/workflows/ci.yml`](./.github/workflows/ci.yml)). *Note: the TypeScript app and Rust contract were built as a clean-room hackathon prototype; `mpc-firewall.testnet` requires final `.wasm` deployment with a funded NEAR Testnet key, and Bitcoin SegWit broadcast requires per-input BIP-143 preimages beyond the unsigned double-SHA256 transaction hash.*
+- `contracts/mpc-firewall/src/lib.rs` — Rust NEAR smart contract (`near-sdk = "=5.12.0"`) with on-chain RLP, ABI, `multicall`, and Bitcoin output/daily-satoshi decoders + 12 unit tests (`cargo test` and `wasm32-unknown-unknown` verified via [`.github/workflows/ci.yml`](./.github/workflows/ci.yml), run [`43400092688`](https://github.com/pipedrimer/mpc-firewall/actions/runs/43400092688)). Compiled `mpc_firewall.wasm` (`199,965` bytes) is deployed and initialized at [`mpc-firewall.testnet`](https://testnet.nearblocks.io/address/mpc-firewall.testnet) (`code_hash`: `GZUSiL4fFkM3RwByaYKFFFGVNRWwKtX6uHbkscqSJVkS`), verified on Testnet rejecting `MaxUint256` approve (`ERR_BLOCKED_ADDRESS: recipient blocked`) and completing a live cross-contract `verify_and_sign_evm -> v1.signer-prod.testnet` Secp256k1 signature ([`9CMZemnkejMCCJHeUXHBtHp4A49T71aLyjoBBQ98ZxVN`](https://testnet.nearblocks.io/txns/9CMZemnkejMCCJHeUXHBtHp4A49T71aLyjoBBQ98ZxVN)). *Note: Bitcoin SegWit broadcast requires per-input BIP-143 preimages beyond the unsigned double-SHA256 transaction hash.*
 - `packages/core/` — Shared TypeScript decoders, policy engine, NEAR AI Cloud (`@nearai/inference-sdk/node`), NEAR Intents 1Click, NEAR RPC, OutLayer/DAO payload builders, and 5 test suites (24 tests).
 - `apps/web/` — Next.js App Router API routes & interactive Security Operations Console (uses `ethers` for EIP-1559/ABI encoding, `lucide-react`, and `@nearai/inference-sdk`).
 - `.github/workflows/ci.yml` — Automated Ubuntu CI running `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm verify:judge`, `pnpm test:e2e`, `cargo test --locked`, and `cargo build --target wasm32-unknown-unknown --release`.

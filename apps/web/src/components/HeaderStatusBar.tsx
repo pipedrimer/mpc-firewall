@@ -15,6 +15,9 @@ export interface NearRpcSnapshot {
   ok: boolean;
   exists: boolean;
   mpcRootPublicKey?: string;
+  firewallContractId?: string;
+  firewallContractDeployed?: boolean;
+  firewallCodeHash?: string;
   error?: string;
 }
 
@@ -119,8 +122,8 @@ export function HeaderStatusBar({
             disabled={checkingRpc}
             title={
               rpc?.mpcRootPublicKey
-                ? `Live NEAR Testnet Root Key (${health?.mpcSignerContractId ?? 'v1.signer-prod.testnet'}): ${rpc.mpcRootPublicKey}`
-                : 'Query live NEAR Testnet RPC for v1.signer-prod.testnet root public key'
+                ? `Live NEAR Testnet Root Key (${health?.mpcSignerContractId ?? 'v1.signer-prod.testnet'}): ${rpc.mpcRootPublicKey}${rpc.firewallContractDeployed ? ` • Firewall WASM live on ${rpc.firewallContractId}` : ''}`
+                : 'Query live NEAR Testnet RPC for v1.signer-prod.testnet root key & mpc-firewall.testnet state'
             }
             className={`inline-flex items-center gap-1 sm:gap-1.5 rounded-full border px-2.5 sm:px-3.5 py-1 sm:py-1.5 font-semibold transition-all disabled:opacity-50 ${
               shortKey
