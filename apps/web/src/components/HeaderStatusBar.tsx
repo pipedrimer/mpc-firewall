@@ -1,6 +1,7 @@
 'use client';
 
-import { CheckCircle2, KeyRound, Layers, RefreshCw, ShieldCheck, Terminal } from 'lucide-react';
+import Link from 'next/link';
+import { BookOpen, CheckCircle2, KeyRound, Layers, RefreshCw, ShieldCheck, Terminal } from 'lucide-react';
 
 export interface HealthSnapshot {
   nearNetworkId: string;
@@ -140,6 +141,16 @@ export function HeaderStatusBar({
                   : 'Verify Key'}
             </span>
           </button>
+
+          {/* Docs Link */}
+          <Link
+            href="/docs"
+            className="inline-flex items-center gap-1 rounded-full border border-[#DCE2EE] bg-white px-2.5 sm:px-3 py-1.5 font-semibold text-[#0B0F17] whitespace-nowrap transition-all hover:border-[#1F3CFF] hover:text-[#1F3CFF]"
+            title="Integration & Protocol Documentation"
+          >
+            <BookOpen className="h-3.5 w-3.5 shrink-0 text-[#1F3CFF]" />
+            <span className="text-[11px] sm:text-xs">Docs</span>
+          </Link>
 
           {/* Reset Demo State */}
           <button

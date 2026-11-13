@@ -1173,7 +1173,7 @@ export function InteractiveXRayStage({
                   )}
                 </div>
 
-                <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-[#E2E8F0] pt-3">
+                <div className="mt-3 border-t border-[#E2E8F0] pt-3">
                   <div className="text-xs text-[#4A5568]">
                     Protected Outcome:{' '}
                     <strong className="font-bold text-[#0B0F17]">
@@ -1184,16 +1184,6 @@ export function InteractiveXRayStage({
                           : meta.withResult}
                     </strong>
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={onInspect}
-                    disabled={loading}
-                    className="group inline-flex cursor-pointer items-center gap-2 rounded-full bg-[#1F3CFF] px-4 py-2 text-xs font-bold text-white shadow-[0_8px_20px_-6px_rgba(31,60,255,0.5)] transition-all hover:bg-[#0B0F17] disabled:opacity-50"
-                  >
-                    <span>{loading ? 'Scanning Envelope…' : 'Re-Scan Live on NEAR'}</span>
-                    <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                  </button>
                 </div>
               </div>
             </div>
