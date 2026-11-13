@@ -1099,8 +1099,13 @@ mod tests {
     fn enforces_daily_bitcoin_satoshi_cap() {
         let mut fw = setup_firewall();
         let valid_script = "00141111111111111111111111111111111111111111";
-        for i in 0..6 {
-            let raw_hex = build_btc_raw_hex(95_000 + i as u64, valid_script);
+        for i in 0..6u64 {
+            testing_env!(VMContextBuilder::new()
+                .predecessor_account_id("agent.testnet".parse().unwrap())
+                .attached_deposit(NearToken::from_millinear(100))
+                .block_timestamp(1_000_000_000_000 + i)
+                .build());
+            let raw_hex = build_btc_raw_hex(95_000 + i, valid_script);
             fw.verify_and_sign_btc(raw_hex, format!("btc-cap-{i}"));
         }
     }

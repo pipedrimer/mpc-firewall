@@ -42,7 +42,7 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
       - name: Run NEAR contract unit tests
-        run: cargo test --locked
+        run: cargo test
       - name: Compile contract Wasm target
         env:
           RUSTFLAGS: "-C link-arg=-s -C target-cpu=mvp"
