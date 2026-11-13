@@ -24,6 +24,7 @@ export default function HomePage() {
   const [chainKind, setChainKind] = useState<FirewallChainKind>('evm');
   const [agentIntent, setAgentIntent] = useState('');
   const [rawUnsignedHex, setRawUnsignedHex] = useState('');
+  const [isTamperedSimulation, setIsTamperedSimulation] = useState(false);
 
   const [inspecting, setInspecting] = useState(false);
   const [scanPulseId, setScanPulseId] = useState(0);
@@ -62,8 +63,7 @@ export default function HomePage() {
               agentIntent: targetIntent
             })
           }),
-          // Ensure the user sees the X-Ray laser scan animation when clicking Scan
-          animateSweep ? new Promise((r) => setTimeout(r, 420)) : Promise.resolve()
+          animateSweep ? new Promise((r) => setTimeout(r, 380)) : Promise.resolve()
         ]);
         const json = await res.json();
         if (!res.ok) {
@@ -158,6 +158,12 @@ export default function HomePage() {
       if (!res.ok) throw new Error(json.error?.message || 'Policy update failed');
       setPolicy(json.data.policy);
       setDailySpentUnits(json.data.dailyTokenSpentUnits ?? '0');
+
+      // In Story mode, immediately re-scan the current transaction against the updated policy
+      // so judges can watch the verdict flip live!
+      if (viewMode === 'story' && rawUnsignedHex.trim()) {
+        await executeInspectPayload(chainKind, rawUnsignedHex, agentIntent, false, true);
+      }
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Failed to update policy');
     } finally {
@@ -167,6 +173,7 @@ export default function HomePage() {
 
   async function handleResetDemo() {
     setErrorMsg(null);
+    setIsTamperedSimulation(false);
     try {
       const headers: Record<string, string> = {};
       if (adminToken.trim()) headers['x-admin-token'] = adminToken.trim();
@@ -177,7 +184,21 @@ export default function HomePage() {
         setPolicy(json.data.policy);
         setDailySpentUnits(json.data.dailyTokenSpentUnits ?? '0');
         setHistory(json.data.history ?? []);
-        setLatestRecord(null);
+        const currentPreset = presets.find((p) => p.id === selectedPresetId) || presets[0];
+        if (currentPreset) {
+          setChainKind(currentPreset.chainKind);
+          setAgentIntent(currentPreset.agentIntent);
+          setRawUnsignedHex(currentPreset.rawUnsignedHex);
+          await executeInspectPayload(
+            currentPreset.chainKind,
+            currentPreset.rawUnsignedHex,
+            currentPreset.agentIntent,
+            false,
+            true
+          );
+        } else {
+          setLatestRecord(null);
+        }
       }
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Failed to reset demo state');
@@ -189,29 +210,43 @@ export default function HomePage() {
     setChainKind(preset.chainKind);
     setAgentIntent(preset.agentIntent);
     setRawUnsignedHex(preset.rawUnsignedHex);
+    setIsTamperedSimulation(false);
     setErrorMsg(null);
 
     if (viewMode === 'story') {
-      const cached = history.find(
-        (r) => r.agentIntent === preset.agentIntent && !r.decision.codes.includes('ERR_REPLAY_DETECTED')
+      void executeInspectPayload(
+        preset.chainKind,
+        preset.rawUnsignedHex,
+        preset.agentIntent,
+        false,
+        true
       );
-      if (cached) {
-        setLatestRecord(cached);
-        setScanPulseId((n) => n + 1);
-      } else {
-        void executeInspectPayload(
-          preset.chainKind,
-          preset.rawUnsignedHex,
-          preset.agentIntent,
-           true,
-          true
-        );
-      }
+    }
+  }
+
+  async function handleTamperCurrentErrand(injectTrap: boolean) {
+    const safePreset = presets.find((p) => p.id === 'safe-base-usdc') || presets[0];
+    const trapPreset = presets.find((p) => p.id === 'attack-nested-multicall') || presets[1];
+    if (!safePreset || !trapPreset) return;
+
+    setSelectedPresetId(safePreset.id);
+    setChainKind('evm');
+    setAgentIntent(safePreset.agentIntent);
+
+    if (injectTrap) {
+      // Keep the AI Assistant's innocent $25 Server Bill claim, but swap the raw bytes
+      // with a poisoned nested multicall containing an unlimited approval!
+      setIsTamperedSimulation(true);
+      setRawUnsignedHex(trapPreset.rawUnsignedHex);
+      await executeInspectPayload('evm', trapPreset.rawUnsignedHex, safePreset.agentIntent, false, true);
+    } else {
+      setIsTamperedSimulation(false);
+      setRawUnsignedHex(safePreset.rawUnsignedHex);
+      await executeInspectPayload('evm', safePreset.rawUnsignedHex, safePreset.agentIntent, true, true);
     }
   }
 
   async function handleInspect() {
-    // Self-heal if presets hadn't loaded yet (e.g. if tab opened during build)
     let targetKind = chainKind;
     let targetHex = rawUnsignedHex;
     let targetIntent = agentIntent;
@@ -237,9 +272,7 @@ export default function HomePage() {
       }
     }
 
-    // In Story Mode, always reset replay state before scanning so clicking "Scan Selected Errand"
-    // repeatedly on any scenario always shows its canonical verdict and sweeps the X-Ray curtain.
-    const shouldResetReplayInStory = viewMode === 'story';
+    const shouldResetReplayInStory = viewMode === 'story' && !isTamperedSimulation;
     await executeInspectPayload(targetKind, targetHex, targetIntent, shouldResetReplayInStory, true);
   }
 
@@ -271,6 +304,11 @@ export default function HomePage() {
             onSelectPreset={handleSelectPreset}
             record={latestRecord}
             policy={policy}
+            savingPolicy={savingPolicy}
+            onTogglePolicy={handleTogglePolicy}
+            onResetPolicy={handleResetDemo}
+            isTamperedSimulation={isTamperedSimulation}
+            onTamperSimulation={handleTamperCurrentErrand}
             loading={inspecting}
             scanPulseId={scanPulseId}
             lastScanDurationMs={lastScanDurationMs}

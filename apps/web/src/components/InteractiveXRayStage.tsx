@@ -1,21 +1,28 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import type { FirewallEvaluationRecord } from '@mpc-firewall/core';
+import type { FirewallEvaluationRecord, FirewallPolicy } from '@mpc-firewall/core';
 import type { ScenarioPresetView } from '@/components/TxWorkbench';
 import {
   AlertOctagon,
+  ArrowRight,
   ArrowUpRight,
   Box,
+  Bug,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Cpu,
   EyeOff,
   Landmark,
   Layers,
   Lock,
   MoveHorizontal,
-  ScanLine
+  RotateCcw,
+  ScanLine,
+  ShieldAlert,
+  ShieldCheck,
+  UserCheck
 } from 'lucide-react';
 
 export interface ScenarioStoryMeta {
@@ -38,11 +45,134 @@ interface InteractiveXRayStageProps {
   storyMap: Record<string, ScenarioStoryMeta>;
   meta: ScenarioStoryMeta;
   record: FirewallEvaluationRecord | null;
+  policy?: FirewallPolicy | null;
+  savingPolicy?: boolean;
+  onTogglePolicy?: (patch: Partial<FirewallPolicy>) => void;
+  onResetPolicy?: () => void;
+  isTamperedSimulation?: boolean;
+  onTamperSimulation?: (injectTrap: boolean) => void;
   loading: boolean;
   scanPulseId?: number;
   lastScanDurationMs?: number | null;
   onSelectPreset: (preset: ScenarioPresetView) => void;
   onInspect: () => void;
+}
+
+interface AnatomyField {
+  label: string;
+  value: string;
+  status: 'safe' | 'warn' | 'danger';
+}
+
+function buildAnatomyFields(record: FirewallEvaluationRecord | null, isBlocked: boolean, isEscalated: boolean): AnatomyField[] {
+  if (!record) {
+    return [
+      { label: 'Target Network', value: 'Base (Chain 8453)', status: 'safe' },
+      { label: 'Decoded Call', value: 'ERC-20 transfer()', status: 'safe' },
+      { label: 'Extracted Value', value: '25.00 USDC', status: 'safe' },
+      { label: 'Counterparty', value: '0x1111…1111 (Verified)', status: 'safe' }
+    ];
+  }
+
+  const codes = record.decision.codes;
+  const d = record.decoded;
+
+  if (d.kind === 'bitcoin') {
+    const sats = Number(d.totalOutputSats || '0').toLocaleString();
+    const out0 = d.outputs[0];
+    const shortScript = out0?.scriptPubKeyHex
+      ? `${out0.scriptPubKeyHex.slice(0, 10)}…${out0.scriptPubKeyHex.slice(-6)}`
+      : 'raw-script';
+    return [
+      { label: 'Target Network', value: `Bitcoin (${d.isSegwit ? 'SegWit' : 'Legacy'})`, status: 'safe' },
+      { label: 'Output Count', value: `${d.outputs.length} Raw UTXO Output(s)`, status: 'safe' },
+      {
+        label: 'Extracted Value',
+        value: `${sats} sats`,
+        status: codes.includes('ERR_BTC_OUTPUT_EXCEEDS_CAP') ? 'danger' : 'safe'
+      },
+      {
+        label: 'Output Script',
+        value: `${shortScript} (Unapproved)`,
+        status: codes.includes('ERR_BTC_UNAPPROVED_OUTPUT_SCRIPT') || isBlocked ? 'danger' : 'safe'
+      }
+    ];
+  }
+
+  // EVM Decoded Anatomy
+  const chainWrong = codes.includes('ERR_CHAIN_ID_NOT_ALLOWED');
+  const chainName =
+    d.chainId === 8453
+      ? 'Base (Chain 8453)'
+      : d.chainId === 1
+        ? 'Ethereum Mainnet (Chain 1)'
+        : `EVM Chain ${d.chainId}`;
+
+  const root = d.rootCall;
+  const hasNested = root.nestedCalls.length > 0;
+  const actionSummary = hasNested
+    ? `multicall (${root.nestedCalls.length} nested calls)`
+    : `${root.action} (${root.selector})`;
+
+  let amountText = '0 ETH';
+  let amountStatus: 'safe' | 'warn' | 'danger' = 'safe';
+
+  const checkUnlimited =
+    codes.includes('ERR_UNLIMITED_APPROVAL') ||
+    codes.includes('ERR_NESTED_MULTICALL_VIOLATION');
+
+  if (checkUnlimited) {
+    amountText = 'UNLIMITED (2²⁵⁶ - 1)';
+    amountStatus = 'danger';
+  } else if (codes.includes('ERR_SET_APPROVAL_FOR_ALL_BLOCKED')) {
+    amountText = '100% NFT Vault Access';
+    amountStatus = 'danger';
+  } else if (root.tokenAmount) {
+    const usdc = Number(root.tokenAmount) / 1_000_000;
+    amountText = `${usdc.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC`;
+    amountStatus = isEscalated ? 'warn' : isBlocked ? 'danger' : 'safe';
+  } else if (d.valueWei && d.valueWei !== '0') {
+    const eth = Number(d.valueWei) / 1e18;
+    amountText = `${eth} ETH`;
+    amountStatus = isBlocked ? 'danger' : 'safe';
+  }
+
+  const rawTarget =
+    root.spenderOrOperator ||
+    root.recipient ||
+    d.to ||
+    '0x0000';
+  const shortTarget =
+    rawTarget.length > 14 ? `${rawTarget.slice(0, 8)}…${rawTarget.slice(-4)}` : rawTarget;
+
+  return [
+    {
+      label: 'Target Network',
+      value: chainName,
+      status: chainWrong ? 'danger' : 'safe'
+    },
+    {
+      label: 'Unpacked Function',
+      value: actionSummary,
+      status:
+        hasNested ||
+        codes.includes('ERR_UNLIMITED_APPROVAL') ||
+        codes.includes('ERR_SET_APPROVAL_FOR_ALL_BLOCKED') ||
+        codes.includes('ERR_UNKNOWN_SELECTOR_BLOCKED')
+          ? 'danger'
+          : 'safe'
+    },
+    {
+      label: 'Decoded Amount',
+      value: amountText,
+      status: amountStatus
+    },
+    {
+      label: 'Destination / Spender',
+      value: isBlocked && !chainWrong ? `${shortTarget} (Blocked)` : `${shortTarget} (Verified)`,
+      status: isBlocked && !chainWrong ? 'danger' : 'safe'
+    }
+  ];
 }
 
 export function InteractiveXRayStage({
@@ -51,6 +181,12 @@ export function InteractiveXRayStage({
   storyMap,
   meta,
   record,
+  policy,
+  savingPolicy = false,
+  onTogglePolicy,
+  onResetPolicy,
+  isTamperedSimulation = false,
+  onTamperSimulation,
   loading,
   scanPulseId = 0,
   onSelectPreset,
@@ -63,14 +199,17 @@ export function InteractiveXRayStage({
   const glareRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // xrayAperturePct:
-  //   0%   = 100% Blind Sealed Envelope (curtain pulled all the way to the right edge)
-  //   100% = 100% X-Ray Revealed (curtain pulled all the way to the left edge)
-  const [xrayAperturePct, setXrayAperturePct] = useState<number>(75);
-  const apertureRef = useRef<number>(75);
+  const [xrayAperturePct, setXrayAperturePct] = useState<number>(78);
+  const apertureRef = useRef<number>(78);
   useEffect(() => {
     apertureRef.current = xrayAperturePct;
   }, [xrayAperturePct]);
+
+  // Interactive Human CFO Co-Sign state for Scenario 06 (DAO Escalation)
+  const [daoApprovedByHuman, setDaoApprovedByHuman] = useState(false);
+  useEffect(() => {
+    setDaoApprovedByHuman(false);
+  }, [preset?.id, record?.id, scanPulseId]);
 
   const draggingSliderRef = useRef<boolean>(false);
   const orbitingCanvasRef = useRef<{ active: boolean; lastX: number; lastY: number }>({
@@ -79,7 +218,6 @@ export function InteractiveXRayStage({
     lastY: 0
   });
 
-  // Spring-damper 3D physics state (zero React state re-renders on pointermove)
   const physicsRef = useRef({
     targetX: 0,
     targetY: 0,
@@ -91,18 +229,24 @@ export function InteractiveXRayStage({
 
   const outcome = record?.decision.outcome;
   const isBlocked = outcome === 'BLOCKED' || (!outcome && preset?.badge === 'ATTACK');
-  const isEscalated = outcome === 'ESCALATE_TO_DAO' || (!outcome && preset?.badge === 'DAO_ESCALATION');
-  const isApproved = outcome === 'APPROVED_FOR_MPC_SIGN' || (!outcome && preset?.badge === 'SAFE');
+  const isEscalated =
+    (outcome === 'ESCALATE_TO_DAO' || (!outcome && preset?.badge === 'DAO_ESCALATION')) &&
+    !daoApprovedByHuman;
+  const isApproved =
+    outcome === 'APPROVED_FOR_MPC_SIGN' ||
+    daoApprovedByHuman ||
+    (!outcome && preset?.badge === 'SAFE');
+
+  const anatomyFields = buildAnatomyFields(record, isBlocked, isEscalated);
 
   // Smooth X-Ray sweep when switching scenarios OR clicking "Scan Selected Errand"
   useEffect(() => {
     let frame = 0;
     const start = performance.now();
-    const duration = 720;
+    const duration = 700;
     const from = 0;
     const to = 82;
 
-    // Give the 3D hologram a spin impulse on scan
     physicsRef.current.orbitYaw += 0.85;
 
     const tick = (now: number) => {
@@ -128,7 +272,6 @@ export function InteractiveXRayStage({
       time += 0.016;
       const p = physicsRef.current;
 
-      // When dragging the X-Ray slider, flatten tilt to 0deg so pointer coordinates are 1:1 linear
       const targetTiltX = draggingSliderRef.current ? 0 : p.targetX;
       const targetTiltY = draggingSliderRef.current ? 0 : p.targetY;
 
@@ -139,14 +282,12 @@ export function InteractiveXRayStage({
         p.orbitYaw += 0.009;
       }
 
-      // Apply 3D transform to the non-overflow-hidden chassis so preserve-3d works properly
       if (tiltChassisRef.current) {
-        const rotY = p.currentX * 6.5;
-        const rotX = -p.currentY * 5.2;
+        const rotY = p.currentX * 6.0;
+        const rotX = -p.currentY * 4.8;
         tiltChassisRef.current.style.transform = `rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg)`;
       }
 
-      // Apply counter-parallax translateZ to floating 3D badge
       if (floatingBadgeRef.current) {
         const shiftX = p.currentX * 8;
         const shiftY = p.currentY * 6;
@@ -159,12 +300,11 @@ export function InteractiveXRayStage({
         glareRef.current.style.background = `radial-gradient(circle at ${gx}% ${gy}%, rgba(255,255,255,0.48) 0%, rgba(255,255,255,0) 62%)`;
       }
 
-      // Render High-DPI 3D Volumetric X-Ray Hologram
       const canvas = canvasRef.current;
       if (canvas) {
         const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
         const rectWidth = canvas.clientWidth || 320;
-        const rectHeight = canvas.clientHeight || 200;
+        const rectHeight = canvas.clientHeight || 190;
         if (canvas.width !== Math.round(rectWidth * dpr) || canvas.height !== Math.round(rectHeight * dpr)) {
           canvas.width = Math.round(rectWidth * dpr);
           canvas.height = Math.round(rectHeight * dpr);
@@ -181,7 +321,6 @@ export function InteractiveXRayStage({
           const cx = w / 2 + p.currentX * 10;
           const cy = h / 2 + p.currentY * 6;
 
-          // How open is the X-Ray aperture? (0.0 = sealed black box, 1.0 = fully exploded X-ray)
           const openRatio = Math.max(0, Math.min(1, apertureRef.current / 100));
 
           const primaryColor = isBlocked
@@ -195,8 +334,7 @@ export function InteractiveXRayStage({
               ? '#F59E0B'
               : '#059669';
 
-          // Background radial scanner rings
-          for (const r of [42, 66, 90]) {
+          for (const r of [38, 60, 82]) {
             ctx.beginPath();
             ctx.arc(cx, cy, r, 0, Math.PI * 2);
             ctx.strokeStyle = isBlocked
@@ -208,7 +346,6 @@ export function InteractiveXRayStage({
             ctx.stroke();
           }
 
-          // 3D rotation angles
           const yaw = p.orbitYaw + p.currentX * 0.55;
           const pitch = p.orbitPitch + p.currentY * 0.45;
 
@@ -221,13 +358,10 @@ export function InteractiveXRayStage({
             return {
               x: cx + x1 * scale * fov,
               y: cy + y2 * scale * fov,
-              z: z2,
-              fov
+              z: z2
             };
           };
 
-          // 1. Draw Exploding Outer Envelope Faces (6 faces of the cube)
-          // As openRatio goes 0 -> 1, the 6 faces separate outward to reveal the inner payload core!
           const explodeOffset = openRatio * 0.65;
           const faceDefs = [
             {
@@ -286,7 +420,6 @@ export function InteractiveXRayStage({
             }
           ];
 
-          // Sort faces back-to-front by average Z
           const projectedFaces = faceDefs
             .map((f) => {
               const [nx, ny, nz] = f.normal;
@@ -295,7 +428,7 @@ export function InteractiveXRayStage({
                   vx + nx * explodeOffset,
                   vy + ny * explodeOffset,
                   vz + nz * explodeOffset,
-                  32
+                  30
                 )
               );
               const avgZ = pts.reduce((acc, pt) => acc + pt.z, 0) / pts.length;
@@ -303,7 +436,6 @@ export function InteractiveXRayStage({
             })
             .sort((a, b) => b.avgZ - a.avgZ);
 
-          // Draw back faces first
           for (const face of projectedFaces) {
             ctx.beginPath();
             ctx.moveTo(face.pts[0].x, face.pts[0].y);
@@ -311,7 +443,6 @@ export function InteractiveXRayStage({
               ctx.lineTo(face.pts[i].x, face.pts[i].y);
             }
             ctx.closePath();
-            // When closed (openRatio near 0), faces are dark obsidian; when open, translucent optical glass
             const darkAlpha = (1 - openRatio) * 0.55 + 0.06;
             ctx.fillStyle =
               openRatio < 0.35
@@ -327,9 +458,7 @@ export function InteractiveXRayStage({
             ctx.stroke();
           }
 
-          // 2. Draw Inner Payload Core (Octahedron + Nested Inner Frame)
-          // Visible and glowing when X-Ray aperture opens
-          const coreScale = 14 + openRatio * 14 + Math.sin(time * 3) * 2;
+          const coreScale = 13 + openRatio * 13 + Math.sin(time * 3) * 2;
           const octaVerts = [
             [0, -1.25, 0],
             [1.25, 0, 0],
@@ -345,8 +474,7 @@ export function InteractiveXRayStage({
           ];
           const innerPts = octaVerts.map(([x, y, z]) => project3D(x, y, z, coreScale));
 
-          // Glowing core aura
-          const grad = ctx.createRadialGradient(cx, cy, 2, cx, cy, 44);
+          const grad = ctx.createRadialGradient(cx, cy, 2, cx, cy, 42);
           grad.addColorStop(
             0,
             isBlocked
@@ -358,11 +486,11 @@ export function InteractiveXRayStage({
           grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
           ctx.fillStyle = grad;
           ctx.beginPath();
-          ctx.arc(cx, cy, 44, 0, Math.PI * 2);
+          ctx.arc(cx, cy, 42, 0, Math.PI * 2);
           ctx.fill();
 
           ctx.strokeStyle = coreColor;
-          ctx.lineWidth = 2.2;
+          ctx.lineWidth = 2.1;
           for (const [a, b] of octaEdges) {
             ctx.beginPath();
             ctx.moveTo(innerPts[a].x, innerPts[a].y);
@@ -370,15 +498,13 @@ export function InteractiveXRayStage({
             ctx.stroke();
           }
 
-          // Vertex nodes
           for (const pt of innerPts) {
             ctx.beginPath();
-            ctx.arc(pt.x, pt.y, 2.6, 0, Math.PI * 2);
+            ctx.arc(pt.x, pt.y, 2.5, 0, Math.PI * 2);
             ctx.fillStyle = coreColor;
             ctx.fill();
           }
 
-          // HUD Telemetry Labels inside 3D Viewport
           ctx.font = '600 10px monospace';
           ctx.fillStyle = '#0B0F17';
           ctx.fillText(
@@ -386,7 +512,7 @@ export function InteractiveXRayStage({
               ? `UNPACKED SHELLS: ${Math.round(openRatio * 100)}%`
               : 'SEALED 32B ENVELOPE',
             10,
-            18
+            16
           );
           ctx.fillStyle = coreColor;
           ctx.fillText(
@@ -396,7 +522,7 @@ export function InteractiveXRayStage({
                 ? 'CORE: DAO VOTE'
                 : 'CORE: VERIFIED SAFE',
             10,
-            h - 10
+            h - 8
           );
 
           ctx.restore();
@@ -415,10 +541,8 @@ export function InteractiveXRayStage({
     if (!viewport) return;
     const rect = viewport.getBoundingClientRect();
     if (rect.width <= 0) return;
-    // Handle position from left edge (0% = far left, 100% = far right)
     const rawPct = ((clientX - rect.left) / rect.width) * 100;
     const clampedLeft = Math.max(0, Math.min(100, rawPct));
-    // Snap cleanly to 0% or 100% when within 1.5% of the edges so pulling all the way feels effortless
     const snappedLeft = clampedLeft < 1.5 ? 0 : clampedLeft > 98.5 ? 100 : clampedLeft;
     const nextAperture = Math.round(100 - snappedLeft);
     apertureRef.current = nextAperture;
@@ -452,8 +576,8 @@ export function InteractiveXRayStage({
     onSelectPreset(presets[nextIdx]);
   }
 
-  // Handle position from left (0% to 100%)
   const handleLeftPct = 100 - xrayAperturePct;
+  const autoCapUsdc = policy ? Math.round(Number(policy.autoApproveTokenUnits) / 1_000_000) : 100;
 
   const digestHex =
     record?.decoded.sighashPayloadHex ||
@@ -490,7 +614,7 @@ export function InteractiveXRayStage({
         className="relative transition-shadow duration-300"
         style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
       >
-        {/* Floating 3D Parallax Badge (sits at translateZ(28px) in real 3D space) */}
+        {/* Floating 3D Parallax Badge */}
         <div
           ref={floatingBadgeRef}
           className="pointer-events-none absolute -top-3.5 right-6 z-40 hidden sm:flex"
@@ -506,7 +630,13 @@ export function InteractiveXRayStage({
             }`}
           >
             <Box className="h-3.5 w-3.5" />
-            <span>3D X-Ray Deconstructor • {meta.dollarBadge}</span>
+            <span>
+              {isTamperedSimulation
+                ? 'PROMPT-INJECTION DETECTED'
+                : daoApprovedByHuman
+                  ? 'CFO CO-SIGNED • APPROVED'
+                  : `3D X-Ray • ${meta.dollarBadge}`}
+            </span>
           </div>
         </div>
 
@@ -529,7 +659,7 @@ export function InteractiveXRayStage({
           {/* =================================================================
               TOP INSTRUMENT BAR: ACTIVE SCENARIO + 0%–100% APERTURE CONTROLS
              ================================================================= */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#DCE2EE] bg-gradient-to-r from-[#0B0F17] via-[#111827] to-[#1E293B] px-5 py-3.5 text-white">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#DCE2EE] bg-gradient-to-r from-[#0B0F17] via-[#111827] to-[#1E293B] px-5 py-3 text-white">
             <div className="flex items-center gap-2.5">
               <span
                 className={`flex h-6 w-6 items-center justify-center rounded-full font-mono text-[11px] font-bold text-white ${
@@ -543,7 +673,9 @@ export function InteractiveXRayStage({
                 {meta.index}
               </span>
               <span className="text-sm font-bold tracking-tight text-white">
-                {meta.humanTitle}
+                {isTamperedSimulation
+                  ? 'The $25 Server Bill (Poisoned with Hidden Trap!)'
+                  : meta.humanTitle}
               </span>
               <span className="hidden rounded-full border border-white/15 bg-white/10 px-2.5 py-0.5 font-mono text-[11px] text-white/80 sm:inline-block">
                 {meta.networkLabel}
@@ -570,8 +702,8 @@ export function InteractiveXRayStage({
                 <button
                   type="button"
                   onClick={() => {
-                    apertureRef.current = 75;
-                    setXrayAperturePct(75);
+                    apertureRef.current = 78;
+                    setXrayAperturePct(78);
                   }}
                   className={`rounded-full px-2.5 py-0.5 font-mono transition-colors ${
                     xrayAperturePct > 0 && xrayAperturePct < 100
@@ -605,7 +737,7 @@ export function InteractiveXRayStage({
           </div>
 
           {/* =================================================================
-              EMBEDDED 7-SCENARIO QUICK SWITCHER DOCK (INSIDE THE 3D STAGE)
+              EMBEDDED 7-SCENARIO QUICK SWITCHER DOCK
              ================================================================= */}
           <div className="flex items-center justify-between gap-2 border-b border-[#DCE2EE] bg-[#F1F5F9] px-3.5 py-2">
             <button
@@ -664,12 +796,65 @@ export function InteractiveXRayStage({
           </div>
 
           {/* =================================================================
+              4-STAGE LIVE NEAR ARCHITECTURE PIPELINE TRACE
+             ================================================================= */}
+          <div className="grid grid-cols-2 gap-1.5 border-b border-[#DCE2EE] bg-white px-4 py-2 text-[11px] sm:grid-cols-4">
+            <div className="flex items-center gap-1.5 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-2.5 py-1">
+              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#0B0F17] font-mono text-[9px] font-bold text-white">
+                1
+              </span>
+              <div className="truncate">
+                <span className="font-bold text-[#0B0F17]">AI Assistant</span>
+                <span className="ml-1 text-[10px] text-[#4A5568]">Sends Raw Tx</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 rounded-lg border border-[#C7D2FE] bg-[#EEF2FF]/60 px-2.5 py-1">
+              <Cpu className="h-3.5 w-3.5 shrink-0 text-[#1F3CFF]" />
+              <div className="truncate">
+                <span className="font-bold text-[#1F3CFF]">NEAR AI TEE</span>
+                <span className="ml-1 text-[10px] text-[#374151]">
+                  {record?.teeAudit?.riskLevel === 'CRITICAL' ? 'Mismatch!' : 'Sig Verified'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 rounded-lg border border-[#C7D2FE] bg-[#EEF2FF]/60 px-2.5 py-1">
+              <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-[#1F3CFF]" />
+              <div className="truncate">
+                <span className="font-bold text-[#0B0F17]">mpc-firewall</span>
+                <span className="ml-1 text-[10px] text-[#4A5568]">Unpacks RLP</span>
+              </div>
+            </div>
+
+            <div
+              className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 font-bold ${
+                isBlocked
+                  ? 'border-[#FECDD3] bg-[#FFF1F2] text-[#E11D48]'
+                  : isEscalated
+                    ? 'border-[#FDE68A] bg-[#FFFBEB] text-[#D97706]'
+                    : 'border-[#A7F3D0] bg-[#ECFDF5] text-[#059669]'
+              }`}
+            >
+              {isBlocked && <ShieldAlert className="h-3.5 w-3.5 shrink-0" />}
+              {isEscalated && <Landmark className="h-3.5 w-3.5 shrink-0" />}
+              {isApproved && <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />}
+              <span className="truncate">
+                {isBlocked
+                  ? 'v1.signer: Severed ($0)'
+                  : isEscalated
+                    ? 'SputnikDAO Vote'
+                    : 'v1.signer: Signed ✓'}
+              </span>
+            </div>
+          </div>
+
+          {/* =================================================================
               INTERACTIVE SPLIT VIEWPORT: 0% TO 100% EDGE-TO-EDGE CURTAIN
              ================================================================= */}
           <div
             ref={splitViewportRef}
             onPointerDown={(e) => {
-              // Ignore clicks on buttons or the 3D orbit canvas
               const target = e.target as HTMLElement;
               if (target.closest('button') || target.closest('canvas')) return;
               e.currentTarget.setPointerCapture(e.pointerId);
@@ -687,16 +872,16 @@ export function InteractiveXRayStage({
                 try {
                   e.currentTarget.releasePointerCapture(e.pointerId);
                 } catch {
-                  // Ignore if not captured
+                  // Ignore
                 }
               }
             }}
-            className="relative min-h-[450px] w-full cursor-ew-resize overflow-hidden bg-white"
+            className="relative min-h-[480px] w-full cursor-ew-resize overflow-hidden bg-white"
           >
             {/* ===============================================================
-                BASE LAYER (REVEALED BY X-RAY): Interactive 3D Hologram + Truth
+                BASE LAYER (REVEALED BY X-RAY): Interactive 3D Hologram + Anatomy
                =============================================================== */}
-            <div className="xray-grid grid min-h-[450px] grid-cols-1 lg:grid-cols-12">
+            <div className="xray-grid grid min-h-[480px] grid-cols-1 lg:grid-cols-12">
               {/* Left 5 Cols: Interactive 3D Exploded-View Hologram + Illustration */}
               <div className="relative flex flex-col justify-between border-b border-[#DCE2EE] bg-gradient-to-b from-[#EEF2FF]/80 via-[#F8FAFC] to-white p-5 lg:col-span-5 lg:border-b-0 lg:border-r">
                 <div className="flex items-center justify-between gap-2">
@@ -710,7 +895,7 @@ export function InteractiveXRayStage({
                 </div>
 
                 {/* Centerpiece Interactive 3D Exploding Envelope Canvas */}
-                <div className="my-2.5 overflow-hidden rounded-2xl border border-[#C7D2FE] bg-white/95 shadow-[0_10px_28px_-12px_rgba(31,60,255,0.2)]">
+                <div className="my-2 overflow-hidden rounded-2xl border border-[#C7D2FE] bg-white/95 shadow-[0_10px_28px_-12px_rgba(31,60,255,0.2)]">
                   <canvas
                     ref={canvasRef}
                     onPointerDown={(e) => {
@@ -744,35 +929,63 @@ export function InteractiveXRayStage({
                         // Ignore
                       }
                     }}
-                    className="h-[195px] w-full cursor-grab active:cursor-grabbing"
+                    className="h-[185px] w-full cursor-grab active:cursor-grabbing"
                     aria-label="Interactive 3D exploding transaction cube"
                   />
                 </div>
 
-                {/* Scenario Editorial Artwork Strip */}
-                <div className="flex items-center gap-3 rounded-xl border border-[#DCE2EE] bg-white p-2 shadow-2xs">
-                  <img
-                    src={meta.illustration}
-                    alt={meta.humanTitle}
-                    className="h-14 w-20 shrink-0 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] object-contain p-1"
-                  />
-                  <div className="min-w-0">
-                    <div className="truncate text-xs font-extrabold text-[#0B0F17]">
-                      {meta.humanTitle}
-                    </div>
-                    <div className="mt-0.5 font-mono text-[10px] font-semibold text-[#1F3CFF]">
-                      {record?.decoded.kind === 'bitcoin' ? 'BTC Raw Outputs' : 'EVM RLP + ABI Tree'}
+                {/* Scenario Editorial Artwork + Tamper Prompt-Injection Simulator */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3 rounded-xl border border-[#DCE2EE] bg-white p-2 shadow-2xs">
+                    <img
+                      src={isTamperedSimulation ? '/illustrations/nesting-dolls.jpg' : meta.illustration}
+                      alt={meta.humanTitle}
+                      className="h-12 w-16 shrink-0 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] object-contain p-1"
+                    />
+                    <div className="min-w-0">
+                      <div className="truncate text-xs font-extrabold text-[#0B0F17]">
+                        {isTamperedSimulation ? 'Poisoned $25 Bill (Trap Injected)' : meta.humanTitle}
+                      </div>
+                      <div className="mt-0.5 font-mono text-[10px] font-semibold text-[#1F3CFF]">
+                        {record?.decoded.kind === 'bitcoin' ? 'BTC Raw Outputs' : 'EVM RLP + ABI Tree'}
+                      </div>
                     </div>
                   </div>
+
+                  {/* Feature 5: One-Click Prompt Injection / Tamper Button on Safe Scenario */}
+                  {onTamperSimulation && (preset?.id === 'safe-base-usdc' || isTamperedSimulation) && (
+                    <button
+                      type="button"
+                      onClick={() => onTamperSimulation(!isTamperedSimulation)}
+                      disabled={loading}
+                      className={`flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-extrabold transition-all ${
+                        isTamperedSimulation
+                          ? 'border-[#059669] bg-[#ECFDF5] text-[#059669] hover:bg-[#059669] hover:text-white'
+                          : 'border-[#FDA4AF] bg-[#FFF1F2] text-[#E11D48] hover:bg-[#E11D48] hover:text-white'
+                      }`}
+                    >
+                      {isTamperedSimulation ? (
+                        <>
+                          <RotateCcw className="h-3.5 w-3.5" />
+                          <span>Restore Clean $25 Server Bill Bytes</span>
+                        </>
+                      ) : (
+                        <>
+                          <Bug className="h-3.5 w-3.5" />
+                          <span>Simulate Prompt Injection (Poison This $25 Bill)</span>
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
 
-              {/* Right 7 Cols: Plain-English Truth & Verdict */}
-              <div className="flex flex-col justify-between bg-white/95 p-6 lg:col-span-7">
-                <div className="space-y-3.5">
+              {/* Right 7 Cols: Plain-English Truth, 4-Pill X-Ray Anatomy & Verdict */}
+              <div className="flex flex-col justify-between bg-white/95 p-5 lg:col-span-7">
+                <div className="space-y-3">
                   {/* High-Contrast Verdict Banner */}
                   <div
-                    className={`flex flex-wrap items-center justify-between gap-2 rounded-2xl border-2 px-4 py-3 shadow-2xs ${
+                    className={`flex flex-wrap items-center justify-between gap-2 rounded-2xl border-2 px-4 py-2.5 shadow-2xs ${
                       isBlocked
                         ? 'border-[#FDA4AF] bg-gradient-to-r from-[#FFF1F2] to-[#FFE4E6] text-[#9F1239]'
                         : isEscalated
@@ -780,7 +993,7 @@ export function InteractiveXRayStage({
                           : 'border-[#6EE7B7] bg-gradient-to-r from-[#ECFDF5] to-[#D1FAE5] text-[#065F46]'
                     }`}
                   >
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-2">
                       {isBlocked && <AlertOctagon className="h-5 w-5 shrink-0 text-[#E11D48]" />}
                       {isEscalated && <Landmark className="h-5 w-5 shrink-0 text-[#D97706]" />}
                       {isApproved && <CheckCircle2 className="h-5 w-5 shrink-0 text-[#059669]" />}
@@ -789,7 +1002,9 @@ export function InteractiveXRayStage({
                           ? 'Intercepted & Blocked Before Signing'
                           : isEscalated
                             ? 'Paused for Human Team Vote (SputnikDAO)'
-                            : 'Verified Safe — Approved for Signing'}
+                            : daoApprovedByHuman
+                              ? 'Human CFO Co-Signed (2/2) — Dispatched to v1.signer'
+                              : 'Verified Safe — Approved for Signing'}
                       </span>
                     </div>
                     <span
@@ -801,23 +1016,27 @@ export function InteractiveXRayStage({
                             : 'bg-[#059669] text-white'
                       }`}
                     >
-                      {meta.dollarBadge}
+                      {isTamperedSimulation
+                        ? '$142,500 Saved'
+                        : daoApprovedByHuman
+                          ? '$250 Co-Signed ✓'
+                          : meta.dollarBadge}
                     </span>
                   </div>
 
                   {/* Comparison of Assistant Claim vs Actual Code */}
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div className="rounded-2xl border border-[#C7D2FE] bg-[#EEF2FF]/65 p-3.5">
+                  <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                    <div className="rounded-xl border border-[#C7D2FE] bg-[#EEF2FF]/65 p-3">
                       <div className="font-mono text-[10px] font-bold uppercase tracking-wider text-[#1F3CFF]">
                         What AI Assistant Claimed
                       </div>
-                      <p className="mt-1 text-sm font-semibold text-[#0B0F17]">
+                      <p className="mt-1 text-xs font-semibold text-[#0B0F17]">
                         &ldquo;{meta.assistantClaim}&rdquo;
                       </p>
                     </div>
 
                     <div
-                      className={`rounded-2xl border p-3.5 ${
+                      className={`rounded-xl border p-3 ${
                         isBlocked
                           ? 'border-[#FECDD3] bg-[#FFF1F2]'
                           : isEscalated
@@ -836,46 +1055,117 @@ export function InteractiveXRayStage({
                       >
                         What X-Ray Found Inside
                       </div>
-                      <p className="mt-1 text-sm font-bold text-[#0B0F17]">
-                        {meta.hiddenReality}
+                      <p className="mt-1 text-xs font-bold text-[#0B0F17]">
+                        {isTamperedSimulation
+                          ? 'Poisoned multicall hiding an infinite MaxUint256 approval!'
+                          : meta.hiddenReality}
                       </p>
                     </div>
                   </div>
 
-                  {/* Why MpcFirewall Made This Decision */}
-                  <div className="rounded-2xl border border-[#DCE2EE] bg-[#F8FAFC] p-3.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-[#0B0F17]">
-                        On-Chain Firewall Rule Triggered
+                  {/* Feature 1: 4-Pill "X-Ray Anatomy" Unpacked Byte Breakdown */}
+                  <div className="rounded-2xl border border-[#DCE2EE] bg-[#F8FAFC] p-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="font-mono text-[10px] font-extrabold uppercase tracking-wider text-[#0B0F17]">
+                        Unpacked Transaction Anatomy (On-Chain Byte Inspection)
                       </span>
-                      <span className="rounded-full bg-[#EEF2FF] px-2.5 py-0.5 font-mono text-[10px] font-semibold text-[#1F3CFF]">
-                        {record?.teeAudit?.signatureVerified
-                          ? 'NEAR AI TEE: Verified'
-                          : 'Deterministic Rust Guard'}
+                      <span className="font-mono text-[10px] font-semibold text-[#1F3CFF]">
+                        {record?.teeAudit?.signatureVerified ? 'TEE Attested ✓' : 'Rust Wasm AST'}
                       </span>
                     </div>
-                    <p className="mt-1 text-xs leading-relaxed text-[#4A5568]">
-                      {record?.decision.reasons?.[0] || meta.withResult}
-                    </p>
-                    {record && record.decision.codes.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {record.decision.codes.map((c) => (
-                          <span
-                            key={c}
-                            className="rounded-md border border-[#DCE2EE] bg-white px-2 py-0.5 font-mono text-[10px] font-bold text-[#0B0F17]"
-                          >
-                            {c}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+
+                    <div className="grid grid-cols-2 gap-2">
+                      {anatomyFields.map((field) => (
+                        <div
+                          key={field.label}
+                          className={`rounded-xl border px-3 py-2 ${
+                            field.status === 'danger'
+                              ? 'border-[#FECDD3] bg-[#FFF1F2]'
+                              : field.status === 'warn'
+                                ? 'border-[#FDE68A] bg-[#FFFBEB]'
+                                : 'border-[#DCE2EE] bg-white'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-semibold text-[#4A5568]">
+                              {field.label}
+                            </span>
+                            <span
+                              className={`font-mono text-[10px] font-extrabold ${
+                                field.status === 'danger'
+                                  ? 'text-[#E11D48]'
+                                  : field.status === 'warn'
+                                    ? 'text-[#D97706]'
+                                    : 'text-[#059669]'
+                              }`}
+                            >
+                              {field.status === 'danger'
+                                ? 'TRAP'
+                                : field.status === 'warn'
+                                  ? 'VOTE'
+                                  : 'OK ✓'}
+                            </span>
+                          </div>
+                          <div className="mt-0.5 truncate font-mono text-xs font-bold text-[#0B0F17]">
+                            {field.value}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
+
+                  {/* Feature 4: Interactive Human CFO Co-Sign Card when Escalated to SputnikDAO */}
+                  {(isEscalated || daoApprovedByHuman) && (
+                    <div
+                      className={`flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 px-4 py-3 transition-all ${
+                        daoApprovedByHuman
+                          ? 'border-[#6EE7B7] bg-[#ECFDF5]'
+                          : 'border-[#FCD34D] bg-[#FFFBEB]'
+                      }`}
+                    >
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-1.5 text-xs font-extrabold text-[#0B0F17]">
+                          <UserCheck className="h-4 w-4 text-[#D97706]" />
+                          <span>
+                            {daoApprovedByHuman
+                              ? 'SputnikDAO Proposal #42 Approved (2/2 Council Quorum)'
+                              : `SputnikDAO / Trezu Proposal #42 (Exceeds $${autoCapUsdc} Auto-Cap)`}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[#4A5568]">
+                          {daoApprovedByHuman
+                            ? 'Human CFO co-signed! MpcFirewall has now dispatched the 32-byte digest to v1.signer-prod.testnet.'
+                            : 'AI assistant initiated 1/2 approval. Waiting for human CFO co-signature to release 250.00 USDC.'}
+                        </p>
+                      </div>
+
+                      {!daoApprovedByHuman ? (
+                        <button
+                          type="button"
+                          onClick={() => setDaoApprovedByHuman(true)}
+                          className="cursor-pointer rounded-full bg-[#D97706] px-4 py-1.5 text-xs font-extrabold text-white shadow-sm hover:bg-[#059669]"
+                        >
+                          Co-Sign as Human CFO (Approve 2/2) &rarr;
+                        </button>
+                      ) : (
+                        <span className="rounded-full bg-[#059669] px-3 py-1 font-mono text-[11px] font-bold text-white">
+                          Dispatched to v1.signer ✓
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#E2E8F0] pt-3">
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-[#E2E8F0] pt-3">
                   <div className="text-xs text-[#4A5568]">
                     Protected Outcome:{' '}
-                    <strong className="font-bold text-[#0B0F17]">{meta.withResult}</strong>
+                    <strong className="font-bold text-[#0B0F17]">
+                      {isTamperedSimulation
+                        ? '$0.00 lost — poisoned $25 bill blocked before reaching v1.signer'
+                        : daoApprovedByHuman
+                          ? '$250.00 USDC co-signed by human CFO & signed by v1.signer'
+                          : meta.withResult}
+                    </strong>
                   </div>
 
                   <button
@@ -893,7 +1183,6 @@ export function InteractiveXRayStage({
 
             {/* ===============================================================
                 OVERLAY LAYER (CLIPPED BY X-RAY BEAM): Sealed Black Envelope
-                Uses clipPath: inset(0 X% 0 0) so it pulls all the way 0%..100%
                =============================================================== */}
             <div
               className="obsidian-grid pointer-events-none absolute inset-0 z-10 bg-[#0B0F17] text-white"
@@ -909,7 +1198,7 @@ export function InteractiveXRayStage({
                 }}
               />
 
-              <div className="relative grid h-full min-h-[450px] grid-cols-1 lg:grid-cols-12">
+              <div className="relative grid h-full min-h-[480px] grid-cols-1 lg:grid-cols-12">
                 {/* Left 5 Cols: Blindfolded Notary & Sealed Envelope Illustration */}
                 <div className="flex flex-col justify-between border-b border-white/10 bg-white/[0.02] p-5 lg:col-span-5 lg:border-b-0 lg:border-r">
                   <div className="flex items-center justify-between gap-2">
@@ -991,7 +1280,7 @@ export function InteractiveXRayStage({
             </div>
 
             {/* ===============================================================
-                DRAGGABLE X-RAY LASER HANDLE (CLAMPED PILL SO NEVER CLIPPED AT 0% / 100%)
+                DRAGGABLE X-RAY LASER HANDLE
                =============================================================== */}
             <div
               role="slider"
@@ -1018,7 +1307,6 @@ export function InteractiveXRayStage({
               }}
               className="pointer-events-none absolute inset-y-0 z-20 flex w-12 items-center justify-center focus:outline-none"
             >
-              {/* Glowing vertical laser beam */}
               <div
                 className={`h-full w-[3px] transition-colors ${
                   isBlocked
@@ -1028,7 +1316,6 @@ export function InteractiveXRayStage({
                       : 'bg-[#1F3CFF] shadow-[0_0_20px_3px_rgba(31,60,255,0.85)]'
                 }`}
               />
-              {/* Physical pill handle */}
               <div
                 className={`pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full border-2 border-white text-white shadow-[0_10px_28px_rgba(11,15,23,0.45)] transition-transform hover:scale-110 active:scale-95 ${
                   isBlocked
@@ -1044,46 +1331,112 @@ export function InteractiveXRayStage({
           </div>
 
           {/* =================================================================
-              BOTTOM APERTURE SCRUBBER BAR (PULL 0% TO 100% WITH ONE SWIPE)
+              BOTTOM APERTURE SCRUBBER + LIVE POLICY SANDBOX BAR (FEATURE 2)
              ================================================================= */}
-          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[#DCE2EE] bg-[#F8FAFC] px-5 py-2.5 text-xs">
-            <button
-              type="button"
-              onClick={() => {
-                apertureRef.current = 0;
-                setXrayAperturePct(0);
-              }}
-              className="font-mono text-[11px] font-bold text-[#E11D48] hover:underline"
-            >
-              &larr; 0% X-Ray (100% Blind Envelope)
-            </button>
-
-            <div className="flex flex-1 items-center gap-3 max-w-xs">
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={handleLeftPct}
-                onChange={(e) => {
-                  const next = 100 - Number(e.target.value);
-                  apertureRef.current = next;
-                  setXrayAperturePct(next);
+          <div className="divide-y divide-[#DCE2EE] border-t border-[#DCE2EE] bg-[#F8FAFC]">
+            {/* Row 1: X-Ray Curtain Scrubber */}
+            <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-2 text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  apertureRef.current = 0;
+                  setXrayAperturePct(0);
                 }}
-                aria-label="Pull X-Ray curtain from 0% to 100%"
-                className="h-2 w-full cursor-ew-resize appearance-none rounded-lg bg-gradient-to-r from-[#1F3CFF] via-[#059669] to-[#0B0F17] accent-[#1F3CFF]"
-              />
+                className="font-mono text-[11px] font-bold text-[#E11D48] hover:underline"
+              >
+                &larr; 0% X-Ray (100% Blind Envelope)
+              </button>
+
+              <div className="flex flex-1 items-center gap-3 max-w-xs">
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={handleLeftPct}
+                  onChange={(e) => {
+                    const next = 100 - Number(e.target.value);
+                    apertureRef.current = next;
+                    setXrayAperturePct(next);
+                  }}
+                  aria-label="Pull X-Ray curtain from 0% to 100%"
+                  className="h-2 w-full cursor-ew-resize appearance-none rounded-lg bg-gradient-to-r from-[#1F3CFF] via-[#059669] to-[#0B0F17] accent-[#1F3CFF]"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  apertureRef.current = 100;
+                  setXrayAperturePct(100);
+                }}
+                className="font-mono text-[11px] font-bold text-[#1F3CFF] hover:underline"
+              >
+                100% X-Ray Reveal &rarr;
+              </button>
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                apertureRef.current = 100;
-                setXrayAperturePct(100);
-              }}
-              className="font-mono text-[11px] font-bold text-[#1F3CFF] hover:underline"
-            >
-              100% X-Ray Reveal &rarr;
-            </button>
+            {/* Row 2: Feature 2 — Live Policy Rule Controls to Prove Engine Is Not Hardcoded */}
+            {policy && onTogglePolicy && (
+              <div className="flex flex-wrap items-center justify-between gap-2 bg-[#EEF2FF]/60 px-5 py-2.5 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="rounded-md bg-[#1F3CFF] px-2 py-0.5 font-mono text-[10px] font-bold text-white">
+                    LIVE POLICY SANDBOX
+                  </span>
+                  <span className="text-[11px] font-medium text-[#374151]">
+                    Flip any rule below to watch this transaction re-evaluate live:
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Toggle Auto-Approve Cap between $100 and $300 (flips Scenario 06 between Amber DAO Vote & Green Auto-Sign!) */}
+                  <button
+                    type="button"
+                    disabled={savingPolicy}
+                    onClick={() =>
+                      onTogglePolicy({
+                        autoApproveTokenUnits:
+                          autoCapUsdc >= 300 ? '100000000' : '300000000'
+                      })
+                    }
+                    className={`cursor-pointer rounded-full border px-3 py-1 font-mono text-[11px] font-bold transition-all ${
+                      autoCapUsdc >= 300
+                        ? 'border-[#059669] bg-[#059669] text-white'
+                        : 'border-[#DCE2EE] bg-white text-[#0B0F17] hover:border-[#1F3CFF]'
+                    }`}
+                  >
+                    Auto-Sign Cap: ${autoCapUsdc} USDC {autoCapUsdc >= 300 ? '(Raised → $250 Auto-Signs!)' : '(Click for $300)'}
+                  </button>
+
+                  {/* Toggle Blank-Check Guard */}
+                  <button
+                    type="button"
+                    disabled={savingPolicy}
+                    onClick={() =>
+                      onTogglePolicy({
+                        allowUnlimitedApprovals: !policy.allowUnlimitedApprovals
+                      })
+                    }
+                    className={`cursor-pointer rounded-full border px-3 py-1 font-mono text-[11px] font-bold transition-all ${
+                      !policy.allowUnlimitedApprovals
+                        ? 'border-[#C7D2FE] bg-white text-[#1F3CFF] hover:border-[#1F3CFF]'
+                        : 'border-[#E11D48] bg-[#E11D48] text-white'
+                    }`}
+                  >
+                    Blank-Check Guard: {!policy.allowUnlimitedApprovals ? 'ON ✓' : 'OFF (UNSAFE!)'}
+                  </button>
+
+                  {onResetPolicy && (autoCapUsdc !== 100 || policy.allowUnlimitedApprovals) && (
+                    <button
+                      type="button"
+                      onClick={onResetPolicy}
+                      className="cursor-pointer font-mono text-[11px] font-bold text-[#1F3CFF] underline"
+                    >
+                      Restore Defaults
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

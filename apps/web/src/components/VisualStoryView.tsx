@@ -27,6 +27,11 @@ interface VisualStoryViewProps {
   onSelectPreset: (preset: ScenarioPresetView) => void;
   record: FirewallEvaluationRecord | null;
   policy: FirewallPolicy | null;
+  savingPolicy?: boolean;
+  onTogglePolicy?: (patch: Partial<FirewallPolicy>) => void;
+  onResetPolicy?: () => void;
+  isTamperedSimulation?: boolean;
+  onTamperSimulation?: (injectTrap: boolean) => void;
   loading: boolean;
   scanPulseId?: number;
   lastScanDurationMs?: number | null;
@@ -146,6 +151,12 @@ export function VisualStoryView({
   selectedPresetId,
   onSelectPreset,
   record,
+  policy,
+  savingPolicy = false,
+  onTogglePolicy,
+  onResetPolicy,
+  isTamperedSimulation = false,
+  onTamperSimulation,
   loading,
   scanPulseId = 0,
   lastScanDurationMs = null,
@@ -296,6 +307,12 @@ export function VisualStoryView({
             storyMap={STORY_MAP}
             meta={activeMeta}
             record={record}
+            policy={policy}
+            savingPolicy={savingPolicy}
+            onTogglePolicy={onTogglePolicy}
+            onResetPolicy={onResetPolicy}
+            isTamperedSimulation={isTamperedSimulation}
+            onTamperSimulation={onTamperSimulation}
             loading={loading}
             scanPulseId={scanPulseId}
             lastScanDurationMs={lastScanDurationMs}
