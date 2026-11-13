@@ -1,6 +1,6 @@
 'use client';
 
-import type { FirewallChainKind } from '@mpc-firewall/core';
+import type { Bip143InputContext, FirewallChainKind } from '@mpc-firewall/core';
 import { Play, ShieldAlert, ShieldCheck, Landmark, Terminal } from 'lucide-react';
 
 export interface ScenarioPresetView {
@@ -11,11 +11,7 @@ export interface ScenarioPresetView {
   agentIntent: string;
   description: string;
   rawUnsignedHex: string;
-  bip143Input?: {
-    inputIndex: number;
-    prevoutValueSats: string;
-    scriptCodeHex: string;
-  };
+  bip143Input?: Bip143InputContext;
 }
 
 interface TxWorkbenchProps {
@@ -24,11 +20,13 @@ interface TxWorkbenchProps {
   chainKind: FirewallChainKind;
   agentIntent: string;
   rawUnsignedHex: string;
+  bip143Input?: Bip143InputContext;
   loading: boolean;
   onSelectPreset: (preset: ScenarioPresetView) => void;
   onChangeChainKind: (kind: FirewallChainKind) => void;
   onChangeIntent: (val: string) => void;
   onChangeRawHex: (val: string) => void;
+  onChangeBip143Input?: (val: Bip143InputContext | undefined) => void;
   onInspect: () => void;
 }
 
@@ -38,11 +36,13 @@ export function TxWorkbench({
   chainKind,
   agentIntent,
   rawUnsignedHex,
+  bip143Input,
   loading,
   onSelectPreset,
   onChangeChainKind,
   onChangeIntent,
   onChangeRawHex,
+  onChangeBip143Input,
   onInspect
 }: TxWorkbenchProps) {
   return (
@@ -150,6 +150,84 @@ export function TxWorkbench({
             placeholder="0x02f8..."
           />
         </div>
+
+        {chainKind === 'bitcoin' && onChangeBip143Input && (
+          <div className="rounded-lg border border-[#DCE0E8] bg-[#F8F9FB] p-3 text-[11px]">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <span className="font-mono font-semibold text-[#0B0F17]">
+                BIP-143 SegWit Input Preimage Context
+              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  onChangeBip143Input(
+                    bip143Input
+                      ? undefined
+                      : {
+                          inputIndex: 0,
+                          prevoutValueSats: '300000',
+                          scriptCodeHex: '00141111111111111111111111111111111111111111'
+                        }
+                  )
+                }
+                className="rounded border border-[#DCE0E8] bg-white px-2 py-0.5 font-mono text-[10px] font-semibold text-[#1F3CFF] hover:border-[#1F3CFF]"
+              >
+                {bip143Input ? 'Clear BIP-143' : 'Enable BIP-143'}
+              </button>
+            </div>
+            {bip143Input ? (
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                <label className="block">
+                  <span className="text-[10px] text-[#525B6C]">Input Index</span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={bip143Input.inputIndex}
+                    onChange={(e) =>
+                      onChangeBip143Input({
+                        ...bip143Input,
+                        inputIndex: Math.max(0, Number.parseInt(e.target.value || '0', 10) || 0)
+                      })
+                    }
+                    className="mt-0.5 w-full rounded border border-[#DCE0E8] bg-white px-2 py-1 font-mono text-[11px]"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-[10px] text-[#525B6C]">Prevout Value (sats)</span>
+                  <input
+                    type="text"
+                    value={bip143Input.prevoutValueSats}
+                    onChange={(e) =>
+                      onChangeBip143Input({
+                        ...bip143Input,
+                        prevoutValueSats: e.target.value.replace(/\D/g, '') || '0'
+                      })
+                    }
+                    className="mt-0.5 w-full rounded border border-[#DCE0E8] bg-white px-2 py-1 font-mono text-[11px]"
+                  />
+                </label>
+                <label className="block sm:col-span-3">
+                  <span className="text-[10px] text-[#525B6C]">ScriptCode / P2WPKH Hex</span>
+                  <input
+                    type="text"
+                    value={bip143Input.scriptCodeHex}
+                    onChange={(e) =>
+                      onChangeBip143Input({
+                        ...bip143Input,
+                        scriptCodeHex: e.target.value.trim()
+                      })
+                    }
+                    className="mt-0.5 w-full rounded border border-[#DCE0E8] bg-white px-2 py-1 font-mono text-[11px]"
+                  />
+                </label>
+              </div>
+            ) : (
+              <p className="text-[10px] text-[#525B6C]">
+                Disabled — falling back to raw double-SHA256 digest unless BIP-143 input context is supplied.
+              </p>
+            )}
+          </div>
+        )}
 
         <button
           type="button"

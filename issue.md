@@ -14,7 +14,7 @@ Audit conducted against live deployment (`https://mpc-firewall.netlify.app`), NE
 | **ISSUE-04** | **HIGH** | Bitcoin path lacks cumulative daily satoshi cap (`max_daily_btc_sats`) & strict trailing-byte / BIP-143 scope | **FIXED (TS verified locally; Rust CI added)** |
 | **ISSUE-05** | **HIGH** | Missing `LICENSE`, stale `README.md` test count (`18` vs `24`), fabricated `$142,500 Saved` UI claims, & track dilution | **FIXED (Verified locally & on Netlify)** |
 | **ISSUE-06** | **CRITICAL (External Action)** | Rust contract not built to `.wasm` or deployed on NEAR Testnet (`mpc-firewall.testnet` doesn't exist); `NEARAI_API_KEY` | **FIXED (Verified LIVE: `NEARAI_API_KEY` live TEE, CI run `43408158721` green, `mpc-firewall.testnet` deployed & `v1.signer-prod.testnet` Secp256k1 EVM + BTC BIP-143 TXs verified)** |
-| **ISSUE-07** | **HIGH** | Placeholder `sputnik-dao.near` DAO, no live browser-triggered Testnet TX button, & Preset 07 missing `bip143Input` | **FIXED LOCALLY & ON TESTNET (`mpc-firewall-council.sputnikv2.testnet` deployed + live `add_proposal` TX `txUCafGw...`, `/api/near/execute` + `LiveTestnetExecutePanel` added, Preset 07 BIP-143 wired; requires Netlify env vars for live site execution)** |
+| **ISSUE-07** | **HIGH** | Placeholder `sputnik-dao.near` DAO, no live browser-triggered Testnet TX button, & Preset 07 missing `bip143Input` | **FIXED (Verified LIVE: `mpc-firewall-council.sputnikv2.testnet` DAO + live `add_proposal` TX `8y1UbjdC...`, `/api/near/execute` EVM TX `DuTzDMJi...` + `LiveTestnetExecutePanel` live on Netlify, Preset 07 & workbench BIP-143 wired)** |
 
 ---
 

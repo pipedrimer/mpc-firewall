@@ -175,7 +175,11 @@ export function LiveTestnetExecutePanel({
               {result.usedFreshNonce !== undefined ? ` • evm_nonce=${result.usedFreshNonce}` : ''}
             </div>
             {result.failureMessage && (
-              <div className="font-semibold text-[#E11D48]">Contract revert: {result.failureMessage}</div>
+              <div className="font-semibold text-[#E11D48]">
+                Contract revert: {result.failureMessage}
+                {result.failureMessage.includes('ERR_REPLAY_DETECTED') &&
+                  ' (On-chain replay protection verified: this payload hash was already signed on mpc-firewall.testnet.)'}
+              </div>
             )}
           </div>
         </div>

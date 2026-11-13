@@ -160,9 +160,20 @@ export function ProofInspector({ record, presetId, bip143Input }: ProofInspector
           </div>
         ) : (
           <div className="mt-2.5 space-y-1.5 font-mono text-[11px]">
-            <div className="text-[#525B6C]">
-              version={decoded.version} • segwit={String(decoded.isSegwit)} • totalSats=
-              <span className="font-semibold text-[#D97706]">{decoded.totalOutputSats}</span>
+            <div className="flex flex-wrap items-center gap-2 text-[#525B6C]">
+              <span>
+                version={decoded.version} • segwit={String(decoded.isSegwit)} • totalSats=
+                <span className="font-semibold text-[#D97706]">{decoded.totalOutputSats}</span>
+              </span>
+              <span
+                className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                  decoded.sighashAlgorithm === 'bip143'
+                    ? 'bg-[#059669]/10 text-[#059669]'
+                    : 'bg-[#D97706]/10 text-[#D97706]'
+                }`}
+              >
+                sighash={decoded.sighashAlgorithm || 'raw-double-sha256'}
+              </span>
             </div>
             {decoded.outputs.map((o) => (
               <div key={o.index} className="rounded border border-[#DCE0E8] bg-white p-2 text-[#525B6C]">
@@ -225,7 +236,7 @@ export function ProofInspector({ record, presetId, bip143Input }: ProofInspector
           className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#DCE0E8] bg-[#F8F9FB] px-3 py-2.5 text-xs font-semibold text-[#0B0F17] transition-colors hover:border-[#0B0F17]/40 hover:bg-white disabled:opacity-50"
         >
           <ArrowRightLeft className="h-3.5 w-3.5 text-[#1F3CFF]" />
-          <span>{quoteLoading ? 'Querying 1Click API…' : 'Preview Confidential Intents Treasury Refuel Quote'}</span>
+          <span>{quoteLoading ? 'Querying 1Click API…' : 'Preview NEAR Intents 1Click Refuel Quote (Live API)'}</span>
         </button>
           {quoteOutput && (
           <pre className="mt-2 max-h-44 overflow-auto rounded-lg border border-[#DCE0E8] bg-[#F8F9FB] p-2.5 font-mono text-[10px] text-[#525B6C]">

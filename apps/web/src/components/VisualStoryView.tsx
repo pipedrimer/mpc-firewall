@@ -228,6 +228,15 @@ export function VisualStoryView({
               <span>MPC TX: 9CMZem…8ZxVN</span>
               <ArrowUpRight className="h-3 w-3" />
             </a>
+            <a
+              href="https://testnet.nearblocks.io/address/mpc-firewall-council.sputnikv2.testnet"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 rounded-full border border-[#FDE68A] bg-[#FFFBEB] px-3 py-1 font-mono text-[11px] font-bold text-[#92400E] shadow-2xs hover:bg-[#FEF3C7]"
+            >
+              <span>sputnikv2 DAO</span>
+              <ArrowUpRight className="h-3 w-3" />
+            </a>
           </div>
 
           <h1 className="text-3xl font-extrabold tracking-[-0.04em] leading-[1.04] text-[#0B0F17] sm:text-5xl xl:text-[52px]">

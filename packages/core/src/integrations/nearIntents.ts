@@ -8,6 +8,7 @@ export interface IntentsTokenInfo {
 
 export interface IntentsQuotePreview {
   mode: 'near-intents-live' | 'near-intents-offline-fallback';
+  depositType: 'INTENTS' | 'CONFIDENTIAL_INTENTS';
   originAsset: string;
   destinationAsset: string;
   amount: string;
@@ -110,6 +111,7 @@ export async function previewIntentsQuote(params: {
     const quoteObj = (json.quote as Record<string, unknown>) || json;
     return {
       mode: 'near-intents-live',
+      depositType,
       originAsset: params.originAsset,
       destinationAsset: params.destinationAsset,
       amount: params.amount,
@@ -121,6 +123,7 @@ export async function previewIntentsQuote(params: {
   } catch (err) {
     return {
       mode: 'near-intents-offline-fallback',
+      depositType,
       originAsset: params.originAsset,
       destinationAsset: params.destinationAsset,
       amount: params.amount,

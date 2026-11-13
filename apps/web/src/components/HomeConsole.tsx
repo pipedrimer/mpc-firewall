@@ -35,6 +35,9 @@ export function HomeConsole({ initialPresets, initialPolicy }: HomeConsoleProps)
   const [chainKind, setChainKind] = useState<FirewallChainKind>(firstInitial?.chainKind ?? 'evm');
   const [agentIntent, setAgentIntent] = useState(firstInitial?.agentIntent ?? '');
   const [rawUnsignedHex, setRawUnsignedHex] = useState(firstInitial?.rawUnsignedHex ?? '');
+  const [bip143Input, setBip143Input] = useState<Bip143InputContext | undefined>(
+    firstInitial?.bip143Input
+  );
   const [isTamperedSimulation, setIsTamperedSimulation] = useState(false);
   const userInteractedRef = useRef(false);
 
@@ -120,6 +123,7 @@ export function HomeConsole({ initialPresets, initialPolicy }: HomeConsoleProps)
           setChainKind(firstPreset.chainKind);
           setAgentIntent(firstPreset.agentIntent);
           setRawUnsignedHex(firstPreset.rawUnsignedHex);
+          setBip143Input(firstPreset.bip143Input);
 
           const cached = loadedHistory.find(
             (r) => r.agentIntent === firstPreset.agentIntent && !r.decision.codes.includes('ERR_REPLAY_DETECTED')
@@ -208,6 +212,7 @@ export function HomeConsole({ initialPresets, initialPolicy }: HomeConsoleProps)
           setChainKind(currentPreset.chainKind);
           setAgentIntent(currentPreset.agentIntent);
           setRawUnsignedHex(currentPreset.rawUnsignedHex);
+          setBip143Input(currentPreset.bip143Input);
           await executeInspectPayload(
             currentPreset.chainKind,
             currentPreset.rawUnsignedHex,
@@ -231,6 +236,7 @@ export function HomeConsole({ initialPresets, initialPolicy }: HomeConsoleProps)
     setChainKind(preset.chainKind);
     setAgentIntent(preset.agentIntent);
     setRawUnsignedHex(preset.rawUnsignedHex);
+    setBip143Input(preset.bip143Input);
     setIsTamperedSimulation(false);
     setErrorMsg(null);
 
@@ -287,6 +293,7 @@ export function HomeConsole({ initialPresets, initialPolicy }: HomeConsoleProps)
           setChainKind(first.chainKind);
           setAgentIntent(first.agentIntent);
           setRawUnsignedHex(first.rawUnsignedHex);
+          setBip143Input(first.bip143Input);
           targetKind = first.chainKind;
           targetHex = first.rawUnsignedHex;
           targetIntent = first.agentIntent;
@@ -297,6 +304,7 @@ export function HomeConsole({ initialPresets, initialPolicy }: HomeConsoleProps)
     }
 
     const matchedPreset = presets.find((p) => p.id === selectedPresetId && p.rawUnsignedHex === targetHex);
+    const activeBip143 = targetKind === 'bitcoin' ? (bip143Input ?? matchedPreset?.bip143Input) : undefined;
     const shouldResetReplayInStory = viewMode === 'story' && !isTamperedSimulation;
     await executeInspectPayload(
       targetKind,
@@ -304,7 +312,7 @@ export function HomeConsole({ initialPresets, initialPolicy }: HomeConsoleProps)
       targetIntent,
       shouldResetReplayInStory,
       true,
-      matchedPreset?.bip143Input
+      activeBip143
     );
   }
 
@@ -367,11 +375,13 @@ export function HomeConsole({ initialPresets, initialPolicy }: HomeConsoleProps)
                   chainKind={chainKind}
                   agentIntent={agentIntent}
                   rawUnsignedHex={rawUnsignedHex}
+                  bip143Input={bip143Input}
                   loading={inspecting}
                   onSelectPreset={handleSelectPreset}
                   onChangeChainKind={setChainKind}
                   onChangeIntent={setAgentIntent}
                   onChangeRawHex={setRawUnsignedHex}
+                  onChangeBip143Input={setBip143Input}
                   onInspect={handleInspect}
                 />
               </div>
@@ -380,7 +390,7 @@ export function HomeConsole({ initialPresets, initialPolicy }: HomeConsoleProps)
                 <ProofInspector
                   record={latestRecord}
                   presetId={selectedPresetId}
-                  bip143Input={presets.find((p) => p.id === selectedPresetId)?.bip143Input}
+                  bip143Input={chainKind === 'bitcoin' ? bip143Input : undefined}
                 />
               </div>
             </div>
