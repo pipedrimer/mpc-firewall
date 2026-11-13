@@ -176,5 +176,59 @@ describe('policy/firewallEngine (Zero-Blind-Signing Enforcement)', () => {
     assert.ok(decision.codes.includes('ERR_BTC_OUTPUT_EXCEEDS_CAP'));
     assert.ok(decision.codes.includes('ERR_BTC_UNAPPROVED_OUTPUT_SCRIPT'));
   });
+
+  it('blocks bounded ERC-20 approve and increaseAllowance to an unapproved spender', () => {
+    const evilSpender = '0x' + '99'.repeat(20);
+    const iface = new ethers.Interface([
+      'function approve(address spender, uint256 amount)',
+      'function increaseAllowance(address spender, uint256 addedValue)'
+    ]);
+    const approveData = iface.encodeFunctionData('approve', [evilSpender, 10_000_000n]);
+    const increaseData = iface.encodeFunctionData('increaseAllowance', [evilSpender, 10_000_000n]);
+
+    for (const [idx, data] of [approveData, increaseData].entries()) {
+      const tx = ethers.Transaction.from({
+        type: 2,
+        chainId: 8453,
+        nonce: 20 + idx,
+        maxPriorityFeePerGas: 1_000_000n,
+        maxFeePerGas: 20_000_000n,
+        gasLimit: 65_000n,
+        to: USDC_BASE,
+        value: 0n,
+        data
+      });
+      const decoded = decodeUnsignedEvmTx(tx.unsignedSerialized);
+      const decision = evaluateFirewallPolicy(decoded, basePolicy, '0');
+      assert.equal(decision.outcome, 'BLOCKED');
+      assert.ok(decision.codes.includes('ERR_UNAPPROVED_RECIPIENT'));
+    }
+  });
+
+  it('blocks gas-bribe fee drain when gasLimit * maxFeePerGas exceeds maxNativeValueWei', () => {
+    // value = 0, but maxFeePerGas * gasLimit = 300_000 gwei * 2_000_000 = 0.6 ETH (> 0.5 ETH max)
+    const tx = ethers.Transaction.from({
+      type: 2,
+      chainId: 8453,
+      nonce: 22,
+      maxPriorityFeePerGas: 1_000_000_000n,
+      maxFeePerGas: 300_000_000_000_000n,
+      gasLimit: 2_000n,
+      to: VENDOR,
+      value: 0n,
+      data: '0x'
+    });
+    const decoded = decodeUnsignedEvmTx(tx.unsignedSerialized);
+    const decision = evaluateFirewallPolicy(decoded, basePolicy, '0');
+    assert.equal(decision.outcome, 'BLOCKED');
+    assert.ok(decision.codes.includes('ERR_NATIVE_VALUE_EXCEEDS_MAX'));
+  });
+
+  it('rejects EIP-1559 RLP transactions with trailing unexpected list fields', () => {
+    // 10 empty RLP items instead of 9 inside 0x02 envelope
+    const inner = '80'.repeat(10); // 10 bytes -> 0xc0 + 10 = 0xca
+    const malformedHex = '0x02ca' + inner;
+    assert.throws(() => decodeUnsignedEvmTx(malformedHex), /ERR_INVALID_RAW_TX/);
+  });
 });
 

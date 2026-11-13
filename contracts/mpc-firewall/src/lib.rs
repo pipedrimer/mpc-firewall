@@ -96,6 +96,7 @@ pub struct MpcFirewall {
     pub daily_token_spent: u128,
     pub daily_native_spent: u128,
     pub processed_tx_ids: LookupSet<String>,
+    pub processed_payloads: LookupSet<[u8; 32]>,
     pub escalated_txs: LookupMap<String, EscalatedTx>,
 }
 
@@ -117,6 +118,7 @@ impl MpcFirewall {
             daily_token_spent: 0,
             daily_native_spent: 0,
             processed_tx_ids: LookupSet::new(b"p"),
+            processed_payloads: LookupSet::new(b"d"),
             escalated_txs: LookupMap::new(b"e"),
         }
     }
@@ -180,12 +182,13 @@ impl MpcFirewall {
                 "ERR_UNAPPROVED_TARGET_CONTRACT"
             );
         }
+        let native_exposure_wei = decoded.value_wei.saturating_add(decoded.max_fee_wei);
         require!(
-            decoded.value_wei <= self.policy.max_native_wei,
+            native_exposure_wei <= self.policy.max_native_wei,
             "ERR_NATIVE_VALUE_EXCEEDS_MAX"
         );
         require!(
-            self.daily_native_spent.saturating_add(decoded.value_wei) <= self.policy.max_daily_native_wei,
+            self.daily_native_spent.saturating_add(native_exposure_wei) <= self.policy.max_daily_native_wei,
             "ERR_DAILY_NATIVE_CAP_EXCEEDED"
         );
 
@@ -202,9 +205,11 @@ impl MpcFirewall {
         let hash_vec = env::keccak256(&raw_bytes);
         let mut payload = [0u8; 32];
         payload.copy_from_slice(&hash_vec);
+        require!(!self.processed_payloads.contains(&payload), "ERR_REPLAY_DETECTED");
         let payload_hash_hex = format!("0x{}", encode_hex(&payload));
 
         self.processed_tx_ids.insert(tx_id.clone());
+        self.processed_payloads.insert(payload);
 
         let needs_dao = decoded.value_wei > self.policy.auto_approve_native_wei
             || token_total > self.policy.auto_approve_token_amount;
@@ -218,7 +223,7 @@ impl MpcFirewall {
                     payload_hash_hex: payload_hash_hex.clone(),
                     path: self.derivation_path.clone(),
                     token_amount: token_total,
-                    native_wei: decoded.value_wei,
+                    native_wei: native_exposure_wei,
                     status: DispatchStatus::PendingDaoApproval,
                 },
             );
@@ -234,7 +239,7 @@ impl MpcFirewall {
         }
 
         self.daily_token_spent = self.daily_token_spent.saturating_add(token_total);
-        self.daily_native_spent = self.daily_native_spent.saturating_add(decoded.value_wei);
+        self.daily_native_spent = self.daily_native_spent.saturating_add(native_exposure_wei);
 
         let _ = ext_mpc_signer::ext(self.mpc_signer_contract.clone())
             .with_attached_deposit(env::attached_deposit())
@@ -247,7 +252,7 @@ impl MpcFirewall {
             .then(
                 ext_self::ext(env::current_account_id())
                     .with_static_gas(Gas::from_tgas(10))
-                    .on_mpc_sign_complete(tx_id, token_total, decoded.value_wei),
+                    .on_mpc_sign_complete(tx_id, token_total, native_exposure_wei),
             );
 
         InspectionSummary {
@@ -292,12 +297,14 @@ impl MpcFirewall {
             "ERR_BTC_OUTPUT_EXCEEDS_CAP"
         );
 
-        self.processed_tx_ids.insert(tx_id.clone());
-
         let first_hash = env::sha256(&raw_bytes);
         let double_hash = env::sha256(&first_hash);
         let mut payload = [0u8; 32];
         payload.copy_from_slice(&double_hash);
+        require!(!self.processed_payloads.contains(&payload), "ERR_REPLAY_DETECTED");
+
+        self.processed_tx_ids.insert(tx_id.clone());
+        self.processed_payloads.insert(payload);
 
         let _ = ext_mpc_signer::ext(self.mpc_signer_contract.clone())
             .with_attached_deposit(env::attached_deposit())
@@ -432,7 +439,8 @@ impl MpcFirewall {
                 *token_total = token_total.saturating_add(amount);
             }
             // approve(address spender, uint256 amount) -> 0x095ea7b3
-            [0x09, 0x5e, 0xa7, 0xb3] => {
+            // increaseAllowance(address spender, uint256 addedValue) -> 0x39509351
+            [0x09, 0x5e, 0xa7, 0xb3] | [0x39, 0x50, 0x93, 0x51] => {
                 require!(args.len() >= 64, "Malformed ERC20 approve calldata");
                 let spender = word_to_address_hex(&args[0..32]);
                 self.enforce_approval_word(&spender, &args[32..64], token_total);
@@ -489,7 +497,7 @@ impl MpcFirewall {
     }
 
     fn enforce_approval_word(&self, spender: &str, amount_word: &[u8], token_total: &mut u128) {
-        require!(!self.is_blocked(spender), "ERR_BLOCKED_ADDRESS: spender blocked");
+        self.check_recipient(spender);
         if !self.policy.allow_unlimited_approvals {
             require!(
                 amount_word[0..16].iter().all(|&b| b == 0),
@@ -534,6 +542,7 @@ struct ParsedEvmTx {
     chain_id: u64,
     to: [u8; 20],
     value_wei: u128,
+    max_fee_wei: u128,
     data: Vec<u8>,
 }
 
@@ -551,11 +560,14 @@ fn decode_evm_unsigned_tx(raw: &[u8]) -> ParsedEvmTx {
             RlpItem::List(l) => l,
             _ => env::panic_str("ERR_INVALID_RAW_TX: expected list"),
         };
-        require!(fields.len() >= 9, "ERR_INVALID_RAW_TX: eip1559 field count");
+        require!(fields.len() == 9, "ERR_INVALID_RAW_TX: eip1559 field count");
+        let max_fee_per_gas = rlp_as_u128(&fields[3]);
+        let gas_limit = rlp_as_u128(&fields[4]);
         ParsedEvmTx {
             chain_id: rlp_as_u64(&fields[0]),
             to: rlp_as_address20(&fields[5]),
             value_wei: rlp_as_u128(&fields[6]),
+            max_fee_wei: max_fee_per_gas.saturating_mul(gas_limit),
             data: rlp_as_bytes(&fields[7]).to_vec(),
         }
     } else if raw[0] == 0x01 {
@@ -565,11 +577,14 @@ fn decode_evm_unsigned_tx(raw: &[u8]) -> ParsedEvmTx {
             RlpItem::List(l) => l,
             _ => env::panic_str("ERR_INVALID_RAW_TX: expected list"),
         };
-        require!(fields.len() >= 8, "ERR_INVALID_RAW_TX: eip2930 field count");
+        require!(fields.len() == 8, "ERR_INVALID_RAW_TX: eip2930 field count");
+        let gas_price = rlp_as_u128(&fields[2]);
+        let gas_limit = rlp_as_u128(&fields[3]);
         ParsedEvmTx {
             chain_id: rlp_as_u64(&fields[0]),
             to: rlp_as_address20(&fields[4]),
             value_wei: rlp_as_u128(&fields[5]),
+            max_fee_wei: gas_price.saturating_mul(gas_limit),
             data: rlp_as_bytes(&fields[6]).to_vec(),
         }
     } else if raw[0] >= 0xc0 {
@@ -579,12 +594,18 @@ fn decode_evm_unsigned_tx(raw: &[u8]) -> ParsedEvmTx {
             RlpItem::List(l) => l,
             _ => env::panic_str("ERR_INVALID_RAW_TX: expected list"),
         };
-        require!(fields.len() >= 6, "ERR_INVALID_RAW_TX: legacy field count");
-        let chain_id = if fields.len() >= 9 { rlp_as_u64(&fields[6]) } else { 1 };
+        require!(
+            fields.len() == 6 || fields.len() == 9,
+            "ERR_INVALID_RAW_TX: legacy field count"
+        );
+        let chain_id = if fields.len() == 9 { rlp_as_u64(&fields[6]) } else { 1 };
+        let gas_price = rlp_as_u128(&fields[1]);
+        let gas_limit = rlp_as_u128(&fields[2]);
         ParsedEvmTx {
             chain_id,
             to: rlp_as_address20(&fields[3]),
             value_wei: rlp_as_u128(&fields[4]),
+            max_fee_wei: gas_price.saturating_mul(gas_limit),
             data: rlp_as_bytes(&fields[5]).to_vec(),
         }
     } else {
@@ -829,7 +850,14 @@ mod tests {
         b[first_nz..].to_vec()
     }
 
-    fn build_eip1559_raw_hex(chain_id: u64, to_hex: &str, value: u128, calldata: &[u8]) -> String {
+    fn build_eip1559_with_gas(
+        chain_id: u64,
+        to_hex: &str,
+        value: u128,
+        max_fee_per_gas: u64,
+        gas_limit: u64,
+        calldata: &[u8],
+    ) -> String {
         let to_bytes = decode_hex(to_hex);
         let value_bytes = {
             if value == 0 {
@@ -844,8 +872,8 @@ mod tests {
             rlp_encode_bytes(&to_be_minimal(chain_id)),
             rlp_encode_bytes(&to_be_minimal(1)),
             rlp_encode_bytes(&to_be_minimal(1_000_000)),
-            rlp_encode_bytes(&to_be_minimal(20_000_000)),
-            rlp_encode_bytes(&to_be_minimal(100_000)),
+            rlp_encode_bytes(&to_be_minimal(max_fee_per_gas)),
+            rlp_encode_bytes(&to_be_minimal(gas_limit)),
             rlp_encode_bytes(&to_bytes),
             rlp_encode_bytes(&value_bytes),
             rlp_encode_bytes(calldata),
@@ -854,6 +882,10 @@ mod tests {
         let mut out = vec![0x02];
         out.extend_from_slice(&list);
         format!("0x{}", encode_hex(&out))
+    }
+
+    fn build_eip1559_raw_hex(chain_id: u64, to_hex: &str, value: u128, calldata: &[u8]) -> String {
+        build_eip1559_with_gas(chain_id, to_hex, value, 20_000_000, 100_000, calldata)
     }
 
     fn abi_word_address(addr_hex: &str) -> Vec<u8> {
@@ -942,9 +974,10 @@ mod tests {
     #[should_panic(expected = "ERR_DAILY_NATIVE_CAP_EXCEEDED")]
     fn enforces_daily_native_wei_cap() {
         let mut fw = setup_firewall();
-        let raw_hex = build_eip1559_raw_hex(8453, "0x1111111111111111111111111111111111111111", 80_000_000_000_000_000, &[]);
-        fw.verify_and_sign_evm(raw_hex.clone(), "tx-nat-1".into());
-        fw.verify_and_sign_evm(raw_hex, "tx-nat-2".into());
+        let raw_hex_1 = build_eip1559_raw_hex(8453, "0x1111111111111111111111111111111111111111", 80_000_000_000_000_000, &[]);
+        let raw_hex_2 = build_eip1559_raw_hex(8453, "0x1111111111111111111111111111111111111111", 80_000_000_000_000_001, &[]);
+        fw.verify_and_sign_evm(raw_hex_1, "tx-nat-1".into());
+        fw.verify_and_sign_evm(raw_hex_2, "tx-nat-2".into());
     }
 
     #[test]
@@ -970,5 +1003,54 @@ mod tests {
         btc.extend_from_slice(&decode_hex("00149999999999999999999999999999999999999999"));
         btc.extend_from_slice(&[0, 0, 0, 0]);
         fw.verify_and_sign_btc(format!("0x{}", encode_hex(&btc)), "btc-evil".into());
+    }
+
+    #[test]
+    #[should_panic(expected = "ERR_REPLAY_DETECTED")]
+    fn blocks_payload_digest_replay_even_with_new_tx_id() {
+        let mut fw = setup_firewall();
+        let raw_hex = build_eip1559_raw_hex(8453, "0x1111111111111111111111111111111111111111", 10_000, &[]);
+        fw.verify_and_sign_evm(raw_hex.clone(), "tx-unique-1".into());
+        fw.verify_and_sign_evm(raw_hex, "tx-unique-2".into());
+    }
+
+    #[test]
+    #[should_panic(expected = "ERR_UNAPPROVED_RECIPIENT")]
+    fn blocks_bounded_approve_to_unapproved_spender() {
+        let mut fw = setup_firewall();
+        let mut calldata = vec![0x09, 0x5e, 0xa7, 0xb3]; // approve(address,uint256)
+        calldata.extend_from_slice(&abi_word_address("0x9999999999999999999999999999999999999999"));
+        calldata.extend_from_slice(&abi_word_u128(10_000_000)); // bounded 10 USDC
+
+        let raw_hex = build_eip1559_raw_hex(8453, "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", 0, &calldata);
+        fw.verify_and_sign_evm(raw_hex, "tx-approve-unapproved-spender".into());
+    }
+
+    #[test]
+    #[should_panic(expected = "ERR_NATIVE_VALUE_EXCEEDS_MAX")]
+    fn blocks_gas_bribe_fee_drain_exceeding_max_native_wei() {
+        let mut fw = setup_firewall();
+        // value = 0, but max_fee_per_gas * gas_limit = 300_000 gwei * 2_000 = 0.6 ETH > 0.5 ETH cap
+        let raw_hex = build_eip1559_with_gas(
+            8453,
+            "0x1111111111111111111111111111111111111111",
+            0,
+            300_000_000_000_000,
+            2_000,
+            &[],
+        );
+        fw.verify_and_sign_evm(raw_hex, "tx-gas-bribe".into());
+    }
+
+    #[test]
+    #[should_panic(expected = "ERR_UNLIMITED_APPROVAL")]
+    fn blocks_increase_allowance_unlimited() {
+        let mut fw = setup_firewall();
+        let mut calldata = vec![0x39, 0x50, 0x93, 0x51]; // increaseAllowance(address,uint256)
+        calldata.extend_from_slice(&abi_word_address("0x1111111111111111111111111111111111111111"));
+        calldata.extend_from_slice(&[0xffu8; 32]);
+
+        let raw_hex = build_eip1559_raw_hex(8453, "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", 0, &calldata);
+        fw.verify_and_sign_evm(raw_hex, "tx-increase-allowance-max".into());
     }
 }

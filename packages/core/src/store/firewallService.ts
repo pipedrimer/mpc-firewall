@@ -160,6 +160,17 @@ export class FirewallService {
             forceLocalEnclave: this.forceLocalEnclave || input.forceLocalEnclave,
             strictLiveTee: input.strictLiveTee
           });
+          if (teeAudit.riskLevel === 'CRITICAL' && decision.outcome !== 'BLOCKED') {
+            decision = {
+              outcome: 'BLOCKED',
+              codes: [...decision.codes, 'ERR_TEE_CRITICAL_RISK'],
+              reasons: [
+                ...decision.reasons,
+                `NEAR AI TEE Audit flagged CRITICAL intent mismatch: ${teeAudit.summary}`
+              ],
+              evaluatedAt: new Date().toISOString()
+            };
+          }
         } catch (err) {
           // Fail closed when strict live TEE verification is required and unavailable
           decision = {
@@ -199,9 +210,10 @@ export class FirewallService {
             }
             return sum;
           }, 0n);
+          const maxGasFeeWei = BigInt(decoded.gasLimit || '0') * BigInt(decoded.maxFeePerGas || '0');
           state.dailyTokenSpentUnits = (BigInt(state.dailyTokenSpentUnits) + addedTokens).toString();
           state.dailyNativeSpentWei = (
-            BigInt(state.dailyNativeSpentWei) + BigInt(decoded.valueWei)
+            BigInt(state.dailyNativeSpentWei) + BigInt(decoded.valueWei) + maxGasFeeWei
           ).toString();
         }
       } else if (decision.outcome === 'ESCALATE_TO_DAO') {

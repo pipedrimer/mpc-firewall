@@ -93,7 +93,7 @@ function decodeCalldataRecursive(
     };
   }
 
-  if (selector === '0x095ea7b3') {
+  if (selector === '0x095ea7b3' || selector === '0x39509351') {
     const [spender, amount] = abiCoder.decode(['address', 'uint256'], argsHex);
     return {
       depth,
@@ -218,8 +218,8 @@ export function decodeUnsignedEvmTx(rawUnsignedHex: string): DecodedEvmTx {
   if (bytes[0] === 0x02) {
     txType = 'eip1559';
     const fields = ethers.decodeRlp(hexFromBytes(bytes.slice(1)));
-    if (!Array.isArray(fields) || fields.length < 9) {
-      throw new Error('ERR_INVALID_RAW_TX: Invalid EIP-1559 RLP field count');
+    if (!Array.isArray(fields) || fields.length !== 9) {
+      throw new Error('ERR_INVALID_RAW_TX: Invalid EIP-1559 RLP field count (expected 9)');
     }
     chainId = Number(rlpBytesToBigInt(fields[0]));
     nonce = rlpBytesToBigInt(fields[1]).toString();
@@ -232,8 +232,8 @@ export function decodeUnsignedEvmTx(rawUnsignedHex: string): DecodedEvmTx {
   } else if (bytes[0] === 0x01) {
     txType = 'eip2930';
     const fields = ethers.decodeRlp(hexFromBytes(bytes.slice(1)));
-    if (!Array.isArray(fields) || fields.length < 8) {
-      throw new Error('ERR_INVALID_RAW_TX: Invalid EIP-2930 RLP field count');
+    if (!Array.isArray(fields) || fields.length !== 8) {
+      throw new Error('ERR_INVALID_RAW_TX: Invalid EIP-2930 RLP field count (expected 8)');
     }
     chainId = Number(rlpBytesToBigInt(fields[0]));
     nonce = rlpBytesToBigInt(fields[1]).toString();
@@ -245,8 +245,8 @@ export function decodeUnsignedEvmTx(rawUnsignedHex: string): DecodedEvmTx {
   } else if (bytes[0] >= 0xc0) {
     txType = 'legacy';
     const fields = ethers.decodeRlp(normalizedHex);
-    if (!Array.isArray(fields) || fields.length < 6) {
-      throw new Error('ERR_INVALID_RAW_TX: Invalid Legacy RLP field count');
+    if (!Array.isArray(fields) || (fields.length !== 6 && fields.length !== 9)) {
+      throw new Error('ERR_INVALID_RAW_TX: Invalid Legacy RLP field count (expected 6 or 9)');
     }
     nonce = rlpBytesToBigInt(fields[0]).toString();
     maxFeePerGas = rlpBytesToBigInt(fields[1]).toString();

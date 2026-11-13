@@ -42,6 +42,22 @@ function evaluateEvmCallTree(
     if (blocked.has(spender)) {
       addViolation(codes, reasons, 'ERR_BLOCKED_ADDRESS', `Spender ${spender} is on blocked list.`);
     }
+    if (allowedRecipients.size > 0 && !allowedRecipients.has(spender)) {
+      addViolation(
+        codes,
+        reasons,
+        'ERR_UNAPPROVED_RECIPIENT',
+        `Spender ${spender} is not in policy allowedRecipients.`
+      );
+      if (call.depth > 0) {
+        addViolation(
+          codes,
+          reasons,
+          'ERR_NESTED_MULTICALL_VIOLATION',
+          `Detected ${verb} to unapproved spender ${spender} at multicall depth ${call.depth}.`
+        );
+      }
+    }
     if (!policy.allowUnlimitedApprovals && (amount > maxTokenAmount || amount >= UINT128_MAX)) {
       addViolation(
         codes,
@@ -181,23 +197,25 @@ function evaluateEvm(
   }
 
   const valueWei = BigInt(tx.valueWei);
+  const maxGasFeeWei = BigInt(tx.gasLimit || '0') * BigInt(tx.maxFeePerGas || '0');
+  const totalNativeExposureWei = valueWei + maxGasFeeWei;
   const maxNativeWei = BigInt(policy.maxNativeValueWei);
   const autoNativeWei = BigInt(policy.autoApproveNativeValueWei);
   const maxDailyNativeWei = BigInt(policy.maxDailyNativeWei || policy.maxNativeValueWei);
-  if (valueWei > maxNativeWei) {
+  if (totalNativeExposureWei > maxNativeWei) {
     addViolation(
       codes,
       reasons,
       'ERR_NATIVE_VALUE_EXCEEDS_MAX',
-      `Native value ${valueWei.toString()} wei exceeds maxNativeValueWei (${maxNativeWei.toString()}).`
+      `Native value + worst-case gas fee (${totalNativeExposureWei.toString()} wei) exceeds maxNativeValueWei (${maxNativeWei.toString()}).`
     );
   }
-  if (BigInt(dailyNativeSpentWei) + valueWei > maxDailyNativeWei) {
+  if (BigInt(dailyNativeSpentWei) + totalNativeExposureWei > maxDailyNativeWei) {
     addViolation(
       codes,
       reasons,
       'ERR_DAILY_NATIVE_CAP_EXCEEDED',
-      `Daily native spend (${(BigInt(dailyNativeSpentWei) + valueWei).toString()} wei) exceeds maxDailyNativeWei (${maxDailyNativeWei.toString()}).`
+      `Daily native exposure (${(BigInt(dailyNativeSpentWei) + totalNativeExposureWei).toString()} wei) exceeds maxDailyNativeWei (${maxDailyNativeWei.toString()}).`
     );
   }
 
