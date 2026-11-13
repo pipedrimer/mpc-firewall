@@ -9,6 +9,7 @@ import { buildDaoEscalationPayload, buildMpcDispatchPayload } from '../integrati
 import { evaluateFirewallPolicy } from '../policy/firewallEngine.js';
 import { getDefaultFirewallPolicy } from '../presets/scenarios.js';
 import type {
+  Bip143InputContext,
   FirewallChainKind,
   FirewallEvaluationRecord,
   FirewallPolicy
@@ -27,6 +28,7 @@ export interface InspectTxInput {
   chainKind: FirewallChainKind;
   rawUnsignedHex: string;
   agentIntent: string;
+  bip143Input?: Bip143InputContext;
   forceLocalEnclave?: boolean;
   strictLiveTee?: boolean;
 }
@@ -181,7 +183,7 @@ export class FirewallService {
       const decoded =
         input.chainKind === 'evm'
           ? decodeUnsignedEvmTx(input.rawUnsignedHex)
-          : decodeUnsignedBitcoinTx(input.rawUnsignedHex);
+          : decodeUnsignedBitcoinTx(input.rawUnsignedHex, input.bip143Input);
 
       let decision = evaluateFirewallPolicy(
         decoded,

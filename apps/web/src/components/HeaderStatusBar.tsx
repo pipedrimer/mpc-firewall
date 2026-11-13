@@ -51,10 +51,10 @@ export function HeaderStatusBar({
       {/* Top Optical Spectrum Accent Line */}
       <div className="h-[3px] w-full bg-gradient-to-r from-[#1F3CFF] via-[#059669] to-[#D97706]" />
 
-      {/* Responsive single-line container with smooth horizontal scroll fallback */}
-      <div className="mx-auto flex h-[62px] sm:h-[66px] max-w-[1400px] flex-nowrap items-center justify-between gap-2 sm:gap-4 px-3 sm:px-6 whitespace-nowrap overflow-x-auto no-scrollbar">
+      {/* Responsive wrap on <md (prevents mobile cutoff), single-row on md+ */}
+      <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-x-2 gap-y-2 px-3 py-2 sm:px-6 md:h-[66px] md:flex-nowrap md:gap-4 md:py-0">
         {/* Left: Brand Identity */}
-        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        <div className="order-1 flex shrink-0 items-center gap-2 sm:gap-3">
           <div className="relative flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#1F3CFF] via-[#1528B0] to-[#0B0F17] text-white shadow-[0_6px_16px_-3px_rgba(31,60,255,0.45)]">
             <ShieldCheck className="h-4 w-4 sm:h-4.5 sm:w-4.5 text-white" />
             <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5">
@@ -74,47 +74,43 @@ export function HeaderStatusBar({
           </div>
         </div>
 
-        {/* Center: Studio vs. Protocol Mode Switcher */}
+        {/* Center on md+ / Full-width 2nd row on mobile: Studio vs. Protocol Mode Switcher */}
         <nav
           aria-label="Console view mode"
-          className="flex shrink-0 items-center rounded-full border border-[#DCE2EE] bg-[#F2F4F9] p-0.5 sm:p-1 shadow-inner"
+          className="order-3 grid w-full grid-cols-2 items-center rounded-full border border-[#DCE2EE] bg-[#F2F4F9] p-0.5 sm:p-1 shadow-inner md:order-2 md:flex md:w-auto md:shrink-0"
         >
           <button
             type="button"
             onClick={() => onChangeViewMode('story')}
-            className={`inline-flex items-center gap-1 sm:gap-1.5 rounded-full px-2.5 sm:px-4 py-1 sm:py-1.5 text-xs font-bold transition-all ${
+            className={`inline-flex items-center justify-center gap-1.5 rounded-full px-2.5 sm:px-4 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
               viewMode === 'story'
                 ? 'bg-gradient-to-r from-[#0B0F17] to-[#1E293B] text-white shadow-[0_4px_12px_rgba(11,15,23,0.18)]'
                 : 'text-[#525B6C] hover:text-[#0B0F17]'
             }`}
           >
-            <Layers className={`h-3.5 w-3.5 ${viewMode === 'story' ? 'text-[#60A5FA]' : 'text-[#525B6C]'}`} />
+            <Layers className={`h-3.5 w-3.5 shrink-0 ${viewMode === 'story' ? 'text-[#60A5FA]' : 'text-[#525B6C]'}`} />
             <span>
               <span className="hidden sm:inline">Interactive </span>
-              X-Ray
-              <span className="hidden md:inline"> Studio</span>
+              X-Ray Studio
             </span>
           </button>
 
           <button
             type="button"
             onClick={() => onChangeViewMode('protocol')}
-            className={`inline-flex items-center gap-1 sm:gap-1.5 rounded-full px-2.5 sm:px-4 py-1 sm:py-1.5 text-xs font-bold transition-all ${
+            className={`inline-flex items-center justify-center gap-1.5 rounded-full px-2.5 sm:px-4 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
               viewMode === 'protocol'
                 ? 'bg-gradient-to-r from-[#0B0F17] to-[#1E293B] text-white shadow-[0_4px_12px_rgba(11,15,23,0.18)]'
                 : 'text-[#525B6C] hover:text-[#0B0F17]'
             }`}
           >
-            <Terminal className={`h-3.5 w-3.5 ${viewMode === 'protocol' ? 'text-[#34D399]' : 'text-[#525B6C]'}`} />
-            <span>
-              <span className="hidden sm:inline">Protocol </span>
-              Inspector
-            </span>
+            <Terminal className={`h-3.5 w-3.5 shrink-0 ${viewMode === 'protocol' ? 'text-[#34D399]' : 'text-[#525B6C]'}`} />
+            <span>Protocol Inspector</span>
           </button>
         </nav>
 
         {/* Right: Clean Action Buttons Only */}
-        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2 text-xs">
+        <div className="order-2 flex shrink-0 items-center gap-1.5 sm:gap-2 text-xs md:order-3">
           {/* Live Testnet RPC Key Button */}
           <button
             type="button"
@@ -125,16 +121,16 @@ export function HeaderStatusBar({
                 ? `Live NEAR Testnet Root Key (${health?.mpcSignerContractId ?? 'v1.signer-prod.testnet'}): ${rpc.mpcRootPublicKey}${rpc.firewallContractDeployed ? ` • Firewall WASM live on ${rpc.firewallContractId}` : ''}`
                 : 'Query live NEAR Testnet RPC for v1.signer-prod.testnet root key & mpc-firewall.testnet state'
             }
-            className={`inline-flex items-center gap-1 sm:gap-1.5 rounded-full border px-2.5 sm:px-3.5 py-1 sm:py-1.5 font-semibold transition-all disabled:opacity-50 ${
+            className={`inline-flex items-center gap-1 sm:gap-1.5 rounded-full border px-2.5 sm:px-3.5 py-1.5 font-semibold whitespace-nowrap transition-all disabled:opacity-50 ${
               shortKey
                 ? 'border-[#A7F3D0] bg-[#ECFDF5] text-[#065F46]'
                 : 'border-[#C7D2FE] bg-[#EEF2FF] text-[#1F3CFF] hover:bg-[#1F3CFF] hover:text-white'
             }`}
           >
             {shortKey ? (
-              <CheckCircle2 className="h-3.5 w-3.5 text-[#059669]" />
+              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-[#059669]" />
             ) : (
-              <KeyRound className="h-3.5 w-3.5" />
+              <KeyRound className="h-3.5 w-3.5 shrink-0" />
             )}
             <span className="font-mono text-[10px] sm:text-[11px]">
               {shortKey
@@ -149,11 +145,12 @@ export function HeaderStatusBar({
           <button
             type="button"
             onClick={onResetDemo}
-            className="group inline-flex items-center gap-1 sm:gap-1.5 rounded-full border border-[#DCE2EE] bg-white px-2.5 sm:px-3.5 py-1 sm:py-1.5 font-semibold text-[#0B0F17] transition-all hover:border-[#0B0F17] hover:bg-[#0B0F17] hover:text-white"
+            className="group inline-flex items-center gap-1 sm:gap-1.5 rounded-full border border-[#DCE2EE] bg-white px-2.5 sm:px-3.5 py-1.5 font-semibold text-[#0B0F17] whitespace-nowrap transition-all hover:border-[#0B0F17] hover:bg-[#0B0F17] hover:text-white"
             title="Reset demo state"
+            aria-label="Reset demo state"
           >
-            <RefreshCw className="h-3.5 w-3.5 transition-transform duration-300 group-hover:rotate-180" />
-            <span className="hidden xs:inline text-[11px] sm:text-xs">Reset</span>
+            <RefreshCw className="h-3.5 w-3.5 shrink-0 transition-transform duration-300 group-hover:rotate-180" />
+            <span className="hidden sm:inline text-xs">Reset</span>
           </button>
         </div>
       </div>

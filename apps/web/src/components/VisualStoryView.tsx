@@ -185,8 +185,8 @@ export function VisualStoryView({
           originAsset: 'nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near',
           destinationAsset: 'nep141:wrap.near',
           amount: '25000000',
-          recipient: 'mpc-firewall.testnet',
-          refundTo: 'mpc-firewall.testnet',
+          recipient: 'mpc-firewall.near',
+          refundTo: 'mpc-firewall.near',
           confidentiality: 'advanced'
         })
       });
@@ -205,11 +205,28 @@ export function VisualStoryView({
           SECTION 1: ASYMMETRIC SPLIT HERO + 3D INTERACTIVE X-RAY STAGE
          ===================================================================== */}
       <section className="grid grid-cols-1 items-center gap-10 pt-2 lg:grid-cols-12">
-        {/* Left Column: High-Impact Editorial Pitch + Color Telemetry Strip */}
+        {/* Left Column: Live Testnet Proof Pill + Editorial Pitch + Color Telemetry Strip */}
         <div className="space-y-6 lg:col-span-5">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#C7D2FE] bg-[#EEF2FF] px-3.5 py-1.5 font-mono text-[11px] font-bold tracking-wider text-[#1F3CFF] uppercase shadow-2xs">
-            <span className="h-2 w-2 rounded-full bg-[#1F3CFF]" />
-            01 / ZERO BLIND SIGNING FOR NEAR AGENTS
+          <div className="flex flex-wrap items-center gap-1.5">
+            <a
+              href="https://testnet.nearblocks.io/address/mpc-firewall.testnet"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#C7D2FE] bg-[#EEF2FF] px-3 py-1 font-mono text-[11px] font-bold text-[#1F3CFF] shadow-2xs hover:bg-[#DBEAFE]"
+            >
+              <span className="h-2 w-2 rounded-full bg-[#059669]" />
+              <span>Live: mpc-firewall.testnet</span>
+              <ArrowUpRight className="h-3 w-3" />
+            </a>
+            <a
+              href="https://testnet.nearblocks.io/txns/9CMZemnkejMCCJHeUXHBtHp4A49T71aLyjoBBQ98ZxVN"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 rounded-full border border-[#A7F3D0] bg-[#ECFDF5] px-3 py-1 font-mono text-[11px] font-bold text-[#065F46] shadow-2xs hover:bg-[#D1FAE5]"
+            >
+              <span>MPC TX: 9CMZem…8ZxVN</span>
+              <ArrowUpRight className="h-3 w-3" />
+            </a>
           </div>
 
           <h1 className="text-3xl font-extrabold tracking-[-0.04em] leading-[1.04] text-[#0B0F17] sm:text-5xl xl:text-[52px]">

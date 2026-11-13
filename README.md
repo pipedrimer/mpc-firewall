@@ -65,7 +65,7 @@ flowchart LR
    pnpm test
    pnpm build
    ```
-   **See:** All TypeScript packages (`@mpc-firewall/core`, `@mpc-firewall/web`) compile cleanly and all 24 tests across 5 suites pass (`btcDecoder.test.ts`, `evmDecoder.test.ts`, `firewallEngine.test.ts`, `firewallService.test.ts`, `hardening.test.ts`).
+   **See:** All TypeScript packages (`@mpc-firewall/core`, `@mpc-firewall/web`) compile cleanly and all 28 tests across 5 suites pass (`btcDecoder.test.ts`, `evmDecoder.test.ts`, `firewallEngine.test.ts`, `firewallService.test.ts`, `hardening.test.ts`).
 
 ### Step B: Run Deterministic CLI Judge Suite & HTTP E2E Suite
 2. **Do:**
@@ -111,8 +111,8 @@ When deploying beyond local evaluation, set these flags in `.env`:
 
 ## 6. Repository Structure & Disclosures (`Q-005`)
 
-- `contracts/mpc-firewall/src/lib.rs` — Rust NEAR smart contract (`near-sdk = "=5.12.0"`) with on-chain RLP, ABI, `multicall`, and Bitcoin output/daily-satoshi decoders + 12 unit tests (`cargo test` and `wasm32-unknown-unknown` verified via [`.github/workflows/ci.yml`](./.github/workflows/ci.yml), run [`43400092688`](https://github.com/pipedrimer/mpc-firewall/actions/runs/43400092688)). Compiled `mpc_firewall.wasm` (`199,965` bytes) is deployed and initialized at [`mpc-firewall.testnet`](https://testnet.nearblocks.io/address/mpc-firewall.testnet) (`code_hash`: `GZUSiL4fFkM3RwByaYKFFFGVNRWwKtX6uHbkscqSJVkS`), verified on Testnet rejecting `MaxUint256` approve (`ERR_BLOCKED_ADDRESS: recipient blocked`) and completing a live cross-contract `verify_and_sign_evm -> v1.signer-prod.testnet` Secp256k1 signature ([`9CMZemnkejMCCJHeUXHBtHp4A49T71aLyjoBBQ98ZxVN`](https://testnet.nearblocks.io/txns/9CMZemnkejMCCJHeUXHBtHp4A49T71aLyjoBBQ98ZxVN)). *Note: Bitcoin SegWit broadcast requires per-input BIP-143 preimages beyond the unsigned double-SHA256 transaction hash.*
-- `packages/core/` — Shared TypeScript decoders, policy engine, NEAR AI Cloud (`@nearai/inference-sdk/node`), NEAR Intents 1Click, NEAR RPC, OutLayer/DAO payload builders, and 5 test suites (24 tests).
+- `contracts/mpc-firewall/src/lib.rs` — Rust NEAR smart contract (`near-sdk = "=5.12.0"`) with on-chain RLP, ABI, `multicall`, Gnosis Safe `execTransaction`, Uniswap `Permit2` & `UniversalRouter`, and Bitcoin output/daily-satoshi/BIP-143 SegWit (`verify_and_sign_btc_bip143`) decoders + 17 unit tests (latest Testnet WASM at [`mpc-firewall.testnet`](https://testnet.nearblocks.io/address/mpc-firewall.testnet), `code_hash`: `GZUSiL4fFkM3RwByaYKFFFGVNRWwKtX6uHbkscqSJVkS` from CI run [`43400092688`](https://github.com/pipedrimer/mpc-firewall/actions/runs/43400092688), verified rejecting `MaxUint256` approve with `ERR_BLOCKED_ADDRESS: recipient blocked` and completing a live cross-contract `verify_and_sign_evm -> v1.signer-prod.testnet` Secp256k1 signature in TX [`9CMZemnkejMCCJHeUXHBtHp4A49T71aLyjoBBQ98ZxVN`](https://testnet.nearblocks.io/txns/9CMZemnkejMCCJHeUXHBtHp4A49T71aLyjoBBQ98ZxVN)).
+- `packages/core/` — Shared TypeScript decoders, policy engine, NEAR AI Cloud (`@nearai/inference-sdk/node`), NEAR Intents 1Click, NEAR RPC, OutLayer/DAO payload builders, and 5 test suites (28 tests).
 - `apps/web/` — Next.js App Router API routes & interactive Security Operations Console (uses `ethers` for EIP-1559/ABI encoding, `lucide-react`, and `@nearai/inference-sdk`).
 - `.github/workflows/ci.yml` — Automated Ubuntu CI running `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm verify:judge`, `pnpm test:e2e`, `cargo test --locked`, and `cargo build --target wasm32-unknown-unknown --release`.
 - `scripts/judge-demo.mjs` — CLI verification script.

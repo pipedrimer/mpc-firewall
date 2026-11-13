@@ -68,6 +68,8 @@ function detectIntentCalldataMismatch(agentIntent: string, decoded: DecodedForei
     (c) =>
       c.action === 'ERC20_APPROVE' ||
       c.action === 'ERC20_PERMIT' ||
+      c.action === 'PERMIT2_APPROVE' ||
+      c.action === 'PERMIT2_PERMIT' ||
       c.action === 'NFT_SET_APPROVAL_FOR_ALL'
   );
   if (hasApproval && !/\b(approv|allowance|permit|revoke)\b/i.test(intent)) {

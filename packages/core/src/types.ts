@@ -8,6 +8,11 @@ export type EvmActionType =
   | 'ERC20_TRANSFER_FROM'
   | 'NFT_SET_APPROVAL_FOR_ALL'
   | 'MULTICALL'
+  | 'SAFE_EXEC_TRANSACTION'
+  | 'PERMIT2_APPROVE'
+  | 'PERMIT2_PERMIT'
+  | 'UNIVERSAL_ROUTER_EXECUTE'
+  | 'UNIVERSAL_ROUTER_SWAP'
   | 'UNKNOWN_CONTRACT_CALL';
 
 export interface EvmDecodedCall {
@@ -18,7 +23,10 @@ export interface EvmDecodedCall {
   spenderOrOperator?: string;
   recipient?: string;
   fromAddress?: string;
+  tokenAddress?: string;
   tokenAmount?: string;
+  nativeValueWei?: string;
+  operationType?: 'CALL' | 'DELEGATECALL';
   approvedBool?: boolean;
   nestedCalls: EvmDecodedCall[];
   rawDataHex: string;
@@ -48,6 +56,12 @@ export interface BitcoinOutput {
   scriptType: 'P2WPKH' | 'P2WSH' | 'P2PKH' | 'P2SH' | 'P2TR' | 'OP_RETURN' | 'UNKNOWN';
 }
 
+export interface Bip143InputContext {
+  inputIndex: number;
+  prevoutValueSats: string;
+  scriptCodeHex: string;
+}
+
 export interface DecodedBitcoinTx {
   kind: 'bitcoin';
   version: number;
@@ -57,6 +71,8 @@ export interface DecodedBitcoinTx {
   totalOutputSats: string;
   rawUnsignedHex: string;
   sighashPayloadHex: string;
+  sighashAlgorithm?: 'bip143' | 'raw-double-sha256';
+  bip143InputIndex?: number;
 }
 
 export type DecodedForeignTx = DecodedEvmTx | DecodedBitcoinTx;
@@ -101,6 +117,7 @@ export type FirewallViolationCode =
   | 'ERR_TOKEN_TRANSFER_EXCEEDS_MAX'
   | 'ERR_DAILY_TOKEN_CAP_EXCEEDED'
   | 'ERR_UNKNOWN_SELECTOR_BLOCKED'
+  | 'ERR_DELEGATECALL_BLOCKED'
   | 'ERR_NESTED_MULTICALL_VIOLATION'
   | 'ERR_BTC_OUTPUT_EXCEEDS_CAP'
   | 'ERR_DAILY_BTC_CAP_EXCEEDED'

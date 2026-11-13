@@ -5,7 +5,14 @@ import { getFirewallService } from '@/lib/firewallRuntime';
 const inspectSchema = z.object({
   chainKind: z.enum(['evm', 'bitcoin']),
   rawUnsignedHex: z.string().min(8),
-  agentIntent: z.string().min(3).max(500)
+  agentIntent: z.string().min(3).max(500),
+  bip143Input: z
+    .object({
+      inputIndex: z.number().int().min(0),
+      prevoutValueSats: z.string().regex(/^\d+$/),
+      scriptCodeHex: z.string().min(40)
+    })
+    .optional()
 });
 
 export async function POST(request: Request) {

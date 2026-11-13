@@ -77,6 +77,14 @@ pub struct EscalatedTx {
 
 #[near(serializers = [json])]
 #[derive(Clone, Debug)]
+pub struct Bip143InputContext {
+    pub input_index: usize,
+    pub prevout_value_sats: u64,
+    pub script_code_hex: String,
+}
+
+#[near(serializers = [json])]
+#[derive(Clone, Debug)]
 pub struct InspectionSummary {
     pub chain_id: u64,
     pub to: String,
@@ -176,16 +184,7 @@ impl MpcFirewall {
         );
 
         let to_hex = format!("0x{}", encode_hex(&decoded.to));
-        require!(
-            !self.is_blocked(&to_hex),
-            "ERR_BLOCKED_ADDRESS: target address is blocked"
-        );
-        if !self.policy.allowed_targets.is_empty() {
-            require!(
-                self.policy.allowed_targets.iter().any(|a| a.eq_ignore_ascii_case(&to_hex)),
-                "ERR_UNAPPROVED_TARGET_CONTRACT"
-            );
-        }
+        self.check_target(&to_hex);
         let native_exposure_wei = decoded.value_wei.saturating_add(decoded.max_fee_wei);
         require!(
             native_exposure_wei <= self.policy.max_native_wei,
@@ -275,20 +274,41 @@ impl MpcFirewall {
     /// double-SHA256 for v1.signer (note: SegWit mainnet broadcast requires BIP-143 sighash preimage).
     #[payable]
     pub fn verify_and_sign_btc(&mut self, raw_unsigned_btc_hex: String, tx_id: String) -> String {
+        self.verify_and_sign_btc_internal(raw_unsigned_btc_hex, tx_id, None)
+    }
+
+    /// Zero-trust Bitcoin BIP-143 SegWit entrypoint: computes the exact per-input BIP-143
+    /// double-SHA256 sighash preimage on-chain (`SIGHASH_ALL = 0x01`) after enforcing caps & scripts.
+    #[payable]
+    pub fn verify_and_sign_btc_bip143(
+        &mut self,
+        raw_unsigned_btc_hex: String,
+        tx_id: String,
+        bip143: Bip143InputContext,
+    ) -> String {
+        self.verify_and_sign_btc_internal(raw_unsigned_btc_hex, tx_id, Some(bip143))
+    }
+
+    fn verify_and_sign_btc_internal(
+        &mut self,
+        raw_unsigned_btc_hex: String,
+        tx_id: String,
+        bip143: Option<Bip143InputContext>,
+    ) -> String {
         self.require_authorized_caller();
         self.roll_day_epoch_if_needed();
         require!(!tx_id.is_empty() && tx_id.len() <= 64, "ERR_INVALID_TX_ID");
         require!(!self.processed_tx_ids.contains(&tx_id), "ERR_REPLAY_DETECTED");
 
         let raw_bytes = decode_hex(&raw_unsigned_btc_hex);
-        let outputs = decode_btc_outputs(&raw_bytes);
-        require!(!outputs.is_empty(), "ERR_INVALID_RAW_TX: no outputs");
+        let parsed = decode_btc_tx(&raw_bytes);
+        require!(!parsed.outputs.is_empty(), "ERR_INVALID_RAW_TX: no outputs");
 
         let mut total_sats: u64 = 0;
-        for (value_sats, script) in outputs {
-            total_sats = total_sats.saturating_add(value_sats);
+        for (value_sats, script) in &parsed.outputs {
+            total_sats = total_sats.saturating_add(*value_sats);
             if !self.policy.allowed_btc_scripts.is_empty() {
-                let script_hex = encode_hex(&script);
+                let script_hex = encode_hex(script);
                 require!(
                     self.policy
                         .allowed_btc_scripts
@@ -307,10 +327,10 @@ impl MpcFirewall {
             "ERR_DAILY_BTC_CAP_EXCEEDED"
         );
 
-        let first_hash = env::sha256(&raw_bytes);
-        let double_hash = env::sha256(&first_hash);
-        let mut payload = [0u8; 32];
-        payload.copy_from_slice(&double_hash);
+        let payload = match bip143 {
+            Some(ctx) => compute_bip143_sighash(&parsed, &ctx),
+            None => dsha256(&raw_bytes),
+        };
         require!(!self.processed_payloads.contains(&payload), "ERR_REPLAY_DETECTED");
 
         self.processed_tx_ids.insert(tx_id.clone());
@@ -500,6 +520,74 @@ impl MpcFirewall {
                     self.enforce_calldata_recursive(target, &inner, depth + 1, token_total, nested_count);
                 }
             }
+            // Gnosis Safe execTransaction(address to, uint256 value, bytes data, uint8 operation, ...) -> 0x6a761202
+            [0x6a, 0x76, 0x12, 0x02] => {
+                require!(args.len() >= 128, "Malformed Safe execTransaction calldata");
+                let safe_to = word_to_address_hex(&args[0..32]);
+                let safe_val = word_to_u128_checked(&args[32..64], "ERR_NATIVE_VALUE_EXCEEDS_MAX");
+                let safe_data = decode_abi_bytes_slice(args, 64);
+                let safe_op = args[127];
+                require!(safe_op == 0, "ERR_DELEGATECALL_BLOCKED");
+                self.check_target(&safe_to);
+                require!(safe_val <= self.policy.max_native_wei, "ERR_NATIVE_VALUE_EXCEEDS_MAX");
+                self.enforce_calldata_recursive(&safe_to, &safe_data, depth + 1, token_total, nested_count);
+            }
+            // Uniswap Permit2 approve(address token, address spender, uint160 amount, uint48 expiration) -> 0x87517c45
+            [0x87, 0x51, 0x7c, 0x45] => {
+                require!(args.len() >= 128, "Malformed Permit2 approve calldata");
+                let spender = word_to_address_hex(&args[32..64]);
+                self.enforce_approval_word(&spender, &args[64..96], token_total);
+            }
+            // Uniswap Permit2 permit(address owner, PermitSingle, bytes sig) -> 0x2b67b570
+            [0x2b, 0x67, 0xb5, 0x70] => {
+                require!(args.len() >= 224, "Malformed Permit2 permit calldata");
+                let spender = word_to_address_hex(&args[160..192]);
+                self.enforce_approval_word(&spender, &args[64..96], token_total);
+            }
+            // Uniswap UniversalRouter execute(bytes commands, bytes[] inputs[, uint256 deadline]) -> 0x3593564c | 0x24856bc3
+            [0x35, 0x93, 0x56, 0x4c] | [0x24, 0x85, 0x6b, 0xc3] => {
+                require!(depth < MAX_MULTICALL_DEPTH, "ERR_NESTED_MULTICALL_DEPTH");
+                let commands = decode_abi_bytes_slice(args, 0);
+                let inputs = decode_abi_bytes_array(args, 32);
+                require!(inputs.len() >= commands.len(), "Malformed UniversalRouter inputs");
+                for (idx, &raw_cmd) in commands.iter().enumerate() {
+                    *nested_count += 1;
+                    let cmd = raw_cmd & 0x3f;
+                    let inp = &inputs[idx];
+                    match cmd {
+                        // SWEEP (0x04) / TRANSFER (0x05): (address token, address recipient, uint256 amount)
+                        0x04 | 0x05 => {
+                            require!(inp.len() >= 96, "Malformed UniversalRouter transfer input");
+                            let recipient = word_to_address_hex(&inp[32..64]);
+                            let amount = word_to_u128_checked(&inp[64..96], "ERR_TOKEN_TRANSFER_EXCEEDS_MAX");
+                            self.check_router_recipient(&recipient);
+                            require!(amount <= self.policy.max_token_amount, "ERR_TOKEN_TRANSFER_EXCEEDS_MAX");
+                            *token_total = token_total.saturating_add(amount);
+                        }
+                        // V3_SWAP_EXACT_IN (0x00) / V2_SWAP_EXACT_IN (0x08): (address recipient, uint256 amountIn, ...)
+                        0x00 | 0x08 => {
+                            require!(inp.len() >= 96, "Malformed UniversalRouter swap input");
+                            let recipient = word_to_address_hex(&inp[0..32]);
+                            let amount_in = word_to_u128_checked(&inp[32..64], "ERR_TOKEN_TRANSFER_EXCEEDS_MAX");
+                            self.check_router_recipient(&recipient);
+                            require!(amount_in <= self.policy.max_token_amount, "ERR_TOKEN_TRANSFER_EXCEEDS_MAX");
+                            *token_total = token_total.saturating_add(amount_in);
+                        }
+                        // PERMIT2_PERMIT (0x0a): (PermitSingle, bytes signature)
+                        0x0a => {
+                            require!(inp.len() >= 192, "Malformed UniversalRouter Permit2 input");
+                            let spender = word_to_address_hex(&inp[128..160]);
+                            self.enforce_approval_word(&spender, &inp[32..64], token_total);
+                        }
+                        _ => {
+                            require!(
+                                self.policy.allow_unknown_selectors,
+                                "ERR_UNKNOWN_SELECTOR_BLOCKED"
+                            );
+                        }
+                    }
+                }
+            }
             _ => {
                 require!(
                     self.policy.allow_unknown_selectors,
@@ -525,6 +613,29 @@ impl MpcFirewall {
             );
         }
         *token_total = token_total.saturating_add(amount);
+    }
+
+    fn check_target(&self, addr: &str) {
+        require!(
+            !self.is_blocked(addr),
+            "ERR_BLOCKED_ADDRESS: target address is blocked"
+        );
+        if !self.policy.allowed_targets.is_empty() {
+            require!(
+                self.policy.allowed_targets.iter().any(|a| a.eq_ignore_ascii_case(addr)),
+                "ERR_UNAPPROVED_TARGET_CONTRACT"
+            );
+        }
+    }
+
+    fn check_router_recipient(&self, addr: &str) {
+        let is_router_internal =
+            addr.eq_ignore_ascii_case("0x0000000000000000000000000000000000000001")
+                || addr.eq_ignore_ascii_case("0x0000000000000000000000000000000000000002");
+        if is_router_internal {
+            return;
+        }
+        self.check_recipient(addr);
     }
 
     fn check_recipient(&self, addr: &str) {
@@ -726,6 +837,16 @@ fn word_to_u128_checked(word: &[u8], err_msg: &str) -> u128 {
     acc
 }
 
+fn decode_abi_bytes_slice(args: &[u8], offset_word_pos: usize) -> Vec<u8> {
+    require!(args.len() >= offset_word_pos + 32, "Malformed bytes offset");
+    let data_offset = word_to_u128_checked(&args[offset_word_pos..offset_word_pos + 32], "Offset overflow") as usize;
+    require!(args.len() >= data_offset + 32, "Malformed bytes header");
+    let len = word_to_u128_checked(&args[data_offset..data_offset + 32], "Length overflow") as usize;
+    let start = data_offset + 32;
+    require!(args.len() >= start + len, "Malformed bytes slice");
+    args[start..start + len].to_vec()
+}
+
 fn decode_abi_bytes_array(args: &[u8], offset_word_pos: usize) -> Vec<Vec<u8>> {
     require!(args.len() >= offset_word_pos + 32, "Malformed multicall offset");
     let array_offset = word_to_u128_checked(&args[offset_word_pos..offset_word_pos + 32], "Offset overflow") as usize;
@@ -748,25 +869,119 @@ fn decode_abi_bytes_array(args: &[u8], offset_word_pos: usize) -> Vec<Vec<u8>> {
     out
 }
 
-fn decode_btc_outputs(raw: &[u8]) -> Vec<(u64, Vec<u8>)> {
+struct ParsedBtcTx {
+    version_le: [u8; 4],
+    outpoints: Vec<[u8; 36]>,
+    sequences: Vec<[u8; 4]>,
+    outputs: Vec<(u64, Vec<u8>)>,
+    outputs_raw: Vec<u8>,
+    locktime_le: [u8; 4],
+}
+
+fn dsha256(data: &[u8]) -> [u8; 32] {
+    let first = env::sha256(data);
+    let second = env::sha256(&first);
+    let mut out = [0u8; 32];
+    out.copy_from_slice(&second);
+    out
+}
+
+fn encode_varint_vec(n: usize) -> Vec<u8> {
+    if n < 0xfd {
+        vec![n as u8]
+    } else if n <= 0xffff {
+        let mut out = vec![0xfd];
+        out.extend_from_slice(&(n as u16).to_le_bytes());
+        out
+    } else {
+        let mut out = vec![0xfe];
+        out.extend_from_slice(&(n as u32).to_le_bytes());
+        out
+    }
+}
+
+fn normalize_bip143_script_code(hex_str: &str) -> Vec<u8> {
+    let raw = decode_hex(hex_str);
+    if raw.len() == 20 {
+        let mut out = Vec::with_capacity(25);
+        out.extend_from_slice(&[0x76, 0xa9, 0x14]);
+        out.extend_from_slice(&raw);
+        out.extend_from_slice(&[0x88, 0xac]);
+        return out;
+    }
+    if raw.len() == 22 && raw[0] == 0x00 && raw[1] == 0x14 {
+        let mut out = Vec::with_capacity(25);
+        out.extend_from_slice(&[0x76, 0xa9, 0x14]);
+        out.extend_from_slice(&raw[2..22]);
+        out.extend_from_slice(&[0x88, 0xac]);
+        return out;
+    }
+    raw
+}
+
+fn compute_bip143_sighash(tx: &ParsedBtcTx, ctx: &Bip143InputContext) -> [u8; 32] {
+    require!(ctx.input_index < tx.outpoints.len(), "ERR_INVALID_RAW_TX: bip143 input_index OOB");
+    let mut prevouts_buf = Vec::with_capacity(tx.outpoints.len() * 36);
+    for op in &tx.outpoints {
+        prevouts_buf.extend_from_slice(op);
+    }
+    let mut seq_buf = Vec::with_capacity(tx.sequences.len() * 4);
+    for seq in &tx.sequences {
+        seq_buf.extend_from_slice(seq);
+    }
+    let hash_prevouts = dsha256(&prevouts_buf);
+    let hash_sequence = dsha256(&seq_buf);
+    let hash_outputs = dsha256(&tx.outputs_raw);
+
+    let script_code = normalize_bip143_script_code(&ctx.script_code_hex);
+    let script_len = encode_varint_vec(script_code.len());
+
+    let mut preimage = Vec::with_capacity(160 + script_len.len() + script_code.len());
+    preimage.extend_from_slice(&tx.version_le);
+    preimage.extend_from_slice(&hash_prevouts);
+    preimage.extend_from_slice(&hash_sequence);
+    preimage.extend_from_slice(&tx.outpoints[ctx.input_index]);
+    preimage.extend_from_slice(&script_len);
+    preimage.extend_from_slice(&script_code);
+    preimage.extend_from_slice(&ctx.prevout_value_sats.to_le_bytes());
+    preimage.extend_from_slice(&tx.sequences[ctx.input_index]);
+    preimage.extend_from_slice(&hash_outputs);
+    preimage.extend_from_slice(&tx.locktime_le);
+    preimage.extend_from_slice(&1u32.to_le_bytes());
+    dsha256(&preimage)
+}
+
+fn decode_btc_tx(raw: &[u8]) -> ParsedBtcTx {
     require!(raw.len() >= 10, "ERR_INVALID_RAW_TX: btc too short");
+    let mut version_le = [0u8; 4];
+    version_le.copy_from_slice(&raw[0..4]);
     let mut pos = 4;
     let is_segwit = raw[pos] == 0x00 && raw.get(pos + 1) == Some(&0x01);
     if is_segwit {
         pos += 2;
     }
-    let vin_count = read_varint(raw, &mut pos);
+    let vin_count = read_varint(raw, &mut pos) as usize;
     require!(vin_count > 0, "ERR_INVALID_RAW_TX: btc missing inputs");
+    let mut outpoints = Vec::with_capacity(vin_count);
+    let mut sequences = Vec::with_capacity(vin_count);
     for _ in 0..vin_count {
+        require!(pos + 36 <= raw.len(), "ERR_INVALID_RAW_TX: btc vin OOB");
+        let mut op = [0u8; 36];
+        op.copy_from_slice(&raw[pos..pos + 36]);
+        outpoints.push(op);
         pos += 36;
-        require!(pos <= raw.len(), "ERR_INVALID_RAW_TX: btc vin OOB");
         let script_len = read_varint(raw, &mut pos) as usize;
-        pos += script_len + 4;
-        require!(pos <= raw.len(), "ERR_INVALID_RAW_TX: btc scriptSig OOB");
+        require!(pos + script_len + 4 <= raw.len(), "ERR_INVALID_RAW_TX: btc scriptSig OOB");
+        pos += script_len;
+        let mut seq = [0u8; 4];
+        seq.copy_from_slice(&raw[pos..pos + 4]);
+        sequences.push(seq);
+        pos += 4;
     }
-    let vout_count = read_varint(raw, &mut pos);
+    let vout_count = read_varint(raw, &mut pos) as usize;
     require!(vout_count > 0, "ERR_INVALID_RAW_TX: btc missing outputs");
-    let mut outputs = Vec::with_capacity(vout_count as usize);
+    let outputs_start = pos;
+    let mut outputs = Vec::with_capacity(vout_count);
     for _ in 0..vout_count {
         require!(pos + 8 <= raw.len(), "ERR_INVALID_RAW_TX: btc vout value OOB");
         let mut val_bytes = [0u8; 8];
@@ -778,6 +993,7 @@ fn decode_btc_outputs(raw: &[u8]) -> Vec<(u64, Vec<u8>)> {
         outputs.push((value_sats, raw[pos..pos + script_len].to_vec()));
         pos += script_len;
     }
+    let outputs_raw = raw[outputs_start..pos].to_vec();
     if is_segwit {
         for _ in 0..vin_count {
             let stack_items = read_varint(raw, &mut pos);
@@ -789,7 +1005,16 @@ fn decode_btc_outputs(raw: &[u8]) -> Vec<(u64, Vec<u8>)> {
         }
     }
     require!(pos + 4 == raw.len(), "ERR_INVALID_RAW_TX: btc locktime/trailing byte mismatch");
-    outputs
+    let mut locktime_le = [0u8; 4];
+    locktime_le.copy_from_slice(&raw[pos..pos + 4]);
+    ParsedBtcTx {
+        version_le,
+        outpoints,
+        sequences,
+        outputs,
+        outputs_raw,
+        locktime_le,
+    }
 }
 
 fn read_varint(raw: &[u8], pos: &mut usize) -> u64 {
@@ -1117,5 +1342,115 @@ mod tests {
         let mut raw_hex = build_btc_raw_hex(20_000, "00141111111111111111111111111111111111111111");
         raw_hex.push_str("deadbeef");
         fw.verify_and_sign_btc(raw_hex, "btc-trailing".into());
+    }
+
+    #[test]
+    fn computes_bip143_segwit_sighash() {
+        let mut fw = setup_firewall();
+        let valid_script = "00141111111111111111111111111111111111111111";
+        let raw_hex = build_btc_raw_hex(40_000, valid_script);
+        let raw_bytes = decode_hex(&raw_hex);
+        let raw_dsha = format!("0x{}", encode_hex(&dsha256(&raw_bytes)));
+
+        let sighash_hex = fw.verify_and_sign_btc_bip143(
+            raw_hex,
+            "btc-bip143-1".into(),
+            Bip143InputContext {
+                input_index: 0,
+                prevout_value_sats: 50_000,
+                script_code_hex: valid_script.into(),
+            },
+        );
+        assert!(sighash_hex.starts_with("0x"));
+        assert_eq!(sighash_hex.len(), 66);
+        assert_ne!(sighash_hex, raw_dsha);
+    }
+
+    #[test]
+    #[should_panic(expected = "ERR_DELEGATECALL_BLOCKED")]
+    fn blocks_safe_delegatecall_execution() {
+        let mut fw = setup_firewall();
+        let mut calldata = vec![0x6a, 0x76, 0x12, 0x02];
+        calldata.extend_from_slice(&abi_word_address("0x1111111111111111111111111111111111111111")); // to
+        calldata.extend_from_slice(&abi_word_u128(0)); // value
+        calldata.extend_from_slice(&abi_word_u128(10 * 32)); // data offset = 320 bytes
+        calldata.extend_from_slice(&abi_word_u128(1)); // operation = 1 (DELEGATECALL)
+        for _ in 0..6 {
+            calldata.extend_from_slice(&abi_word_u128(0));
+        }
+        calldata.extend_from_slice(&abi_word_u128(0)); // data len = 0
+        let raw_hex = build_eip1559_raw_hex(8453, "0x1111111111111111111111111111111111111111", 0, &calldata);
+        fw.verify_and_sign_evm(raw_hex, "tx-safe-delegate".into());
+    }
+
+    #[test]
+    #[should_panic(expected = "ERR_UNLIMITED_APPROVAL")]
+    fn blocks_permit2_unlimited_approval() {
+        let mut fw = setup_firewall();
+        let mut calldata = vec![0x87, 0x51, 0x7c, 0x45]; // Permit2.approve
+        calldata.extend_from_slice(&abi_word_address("0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"));
+        calldata.extend_from_slice(&abi_word_address("0x1111111111111111111111111111111111111111"));
+        let mut u160_max = vec![0u8; 32];
+        for b in &mut u160_max[12..32] {
+            *b = 0xff;
+        }
+        calldata.extend_from_slice(&u160_max);
+        calldata.extend_from_slice(&abi_word_u128(9_999_999_999));
+        let raw_hex = build_eip1559_raw_hex(8453, "0x2626664c2603336e57b271c5c0b26f421741e481", 0, &calldata);
+        fw.verify_and_sign_evm(raw_hex, "tx-permit2-max".into());
+    }
+
+    #[test]
+    #[should_panic(expected = "ERR_BLOCKED_ADDRESS: recipient blocked")]
+    fn blocks_universal_router_sweep_to_attacker() {
+        let mut fw = setup_firewall();
+        let mut sweep_inp = Vec::new();
+        sweep_inp.extend_from_slice(&abi_word_address("0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"));
+        sweep_inp.extend_from_slice(&abi_word_address("0xdead00000000000000000000000000000000beef"));
+        sweep_inp.extend_from_slice(&abi_word_u128(10_000_000));
+
+        // execute(bytes commands, bytes[] inputs) -> 0x24856bc3
+        let mut calldata = vec![0x24, 0x85, 0x6b, 0xc3];
+        calldata.extend_from_slice(&abi_word_u128(64)); // commands offset = 64
+        calldata.extend_from_slice(&abi_word_u128(128)); // inputs offset = 128
+        // commands = [0x04] (SWEEP)
+        calldata.extend_from_slice(&abi_word_u128(1));
+        let mut cmd_word = vec![0u8; 32];
+        cmd_word[0] = 0x04;
+        calldata.extend_from_slice(&cmd_word);
+        // inputs array len = 1, rel offset = 32, elem len = 96, sweep_inp
+        calldata.extend_from_slice(&abi_word_u128(1));
+        calldata.extend_from_slice(&abi_word_u128(32));
+        calldata.extend_from_slice(&abi_word_u128(sweep_inp.len() as u128));
+        calldata.extend_from_slice(&sweep_inp);
+
+        let raw_hex = build_eip1559_raw_hex(8453, "0x2626664c2603336e57b271c5c0b26f421741e481", 0, &calldata);
+        fw.verify_and_sign_evm(raw_hex, "tx-router-sweep".into());
+    }
+
+    #[test]
+    fn approves_universal_router_swap_to_msg_sender() {
+        let mut fw = setup_firewall();
+        let mut swap_inp = Vec::new();
+        swap_inp.extend_from_slice(&abi_word_address("0x0000000000000000000000000000000000000001")); // MSG_SENDER
+        swap_inp.extend_from_slice(&abi_word_u128(20_000_000));
+        swap_inp.extend_from_slice(&abi_word_u128(19_000_000));
+
+        let mut calldata = vec![0x24, 0x85, 0x6b, 0xc3];
+        calldata.extend_from_slice(&abi_word_u128(64));
+        calldata.extend_from_slice(&abi_word_u128(128));
+        calldata.extend_from_slice(&abi_word_u128(1));
+        let mut cmd_word = vec![0u8; 32];
+        cmd_word[0] = 0x00; // V3_SWAP_EXACT_IN
+        calldata.extend_from_slice(&cmd_word);
+        calldata.extend_from_slice(&abi_word_u128(1));
+        calldata.extend_from_slice(&abi_word_u128(32));
+        calldata.extend_from_slice(&abi_word_u128(swap_inp.len() as u128));
+        calldata.extend_from_slice(&swap_inp);
+
+        let raw_hex = build_eip1559_raw_hex(8453, "0x2626664c2603336e57b271c5c0b26f421741e481", 0, &calldata);
+        let summary = fw.verify_and_sign_evm(raw_hex, "tx-router-swap-ok".into());
+        assert_eq!(summary.outcome, "APPROVED_FOR_MPC_SIGN");
+        assert_eq!(fw.daily_token_spent, 20_000_000);
     }
 }

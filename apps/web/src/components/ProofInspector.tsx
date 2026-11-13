@@ -65,8 +65,8 @@ export function ProofInspector({ record }: ProofInspectorProps) {
           originAsset: 'nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near',
           destinationAsset: 'nep141:wrap.near',
           amount: '25000000',
-          recipient: 'mpc-firewall.testnet',
-          refundTo: 'mpc-firewall.testnet',
+          recipient: 'mpc-firewall.near',
+          refundTo: 'mpc-firewall.near',
           confidentiality: 'advanced'
         })
       });

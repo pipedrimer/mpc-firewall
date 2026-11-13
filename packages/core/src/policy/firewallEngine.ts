@@ -9,6 +9,12 @@ import type {
 } from '../types.js';
 
 const UINT128_MAX = (1n << 128n) - 1n;
+const ROUTER_MSG_SENDER = '0x0000000000000000000000000000000000000001';
+const ROUTER_ADDRESS_THIS = '0x0000000000000000000000000000000000000002';
+
+function isRouterInternalRecipient(addr: string): boolean {
+  return addr === ROUTER_MSG_SENDER || addr === ROUTER_ADDRESS_THIS;
+}
 
 function normalizeLowerSet(items: string[]): Set<string> {
   return new Set(items.map((x) => x.trim().toLowerCase()).filter(Boolean));
@@ -35,10 +41,22 @@ function evaluateEvmCallTree(
 ): bigint {
   let tokenOutflow = 0n;
 
-  if (call.action === 'ERC20_APPROVE' || call.action === 'ERC20_PERMIT') {
+  if (
+    call.action === 'ERC20_APPROVE' ||
+    call.action === 'ERC20_PERMIT' ||
+    call.action === 'PERMIT2_APPROVE' ||
+    call.action === 'PERMIT2_PERMIT'
+  ) {
     const spender = call.spenderOrOperator ?? '';
     const amount = BigInt(call.tokenAmount ?? '0');
-    const verb = call.action === 'ERC20_PERMIT' ? 'EIP-2612 permit' : 'ERC-20 approve';
+    const verb =
+      call.action === 'ERC20_PERMIT'
+        ? 'EIP-2612 permit'
+        : call.action === 'PERMIT2_APPROVE'
+          ? 'Permit2 approve'
+          : call.action === 'PERMIT2_PERMIT'
+            ? 'Permit2 permit'
+            : 'ERC-20 approve';
     if (blocked.has(spender)) {
       addViolation(codes, reasons, 'ERR_BLOCKED_ADDRESS', `Spender ${spender} is on blocked list.`);
     }
@@ -78,10 +96,11 @@ function evaluateEvmCallTree(
   } else if (call.action === 'ERC20_TRANSFER' || call.action === 'ERC20_TRANSFER_FROM') {
     const recipient = call.recipient ?? '';
     const amount = BigInt(call.tokenAmount ?? '0');
+    const allowRouterInternal = call.selector.startsWith('cmd:') && isRouterInternalRecipient(recipient);
     if (blocked.has(recipient)) {
       addViolation(codes, reasons, 'ERR_BLOCKED_ADDRESS', `Recipient ${recipient} is on blocked list.`);
     }
-    if (allowedRecipients.size > 0 && !allowedRecipients.has(recipient)) {
+    if (!allowRouterInternal && allowedRecipients.size > 0 && !allowedRecipients.has(recipient)) {
       addViolation(
         codes,
         reasons,
@@ -102,10 +121,74 @@ function evaluateEvmCallTree(
         codes,
         reasons,
         'ERR_NESTED_MULTICALL_VIOLATION',
-        `Detected policy violation inside multicall depth ${call.depth}.`
+        `Detected policy violation inside nested call depth ${call.depth}.`
       );
     }
     tokenOutflow += amount;
+  } else if (call.action === 'UNIVERSAL_ROUTER_SWAP') {
+    const recipient = call.recipient ?? '';
+    const amount = BigInt(call.tokenAmount ?? '0');
+    if (blocked.has(recipient)) {
+      addViolation(codes, reasons, 'ERR_BLOCKED_ADDRESS', `Swap recipient ${recipient} is blocked.`);
+    }
+    if (!isRouterInternalRecipient(recipient) && allowedRecipients.size > 0 && !allowedRecipients.has(recipient)) {
+      addViolation(
+        codes,
+        reasons,
+        'ERR_UNAPPROVED_RECIPIENT',
+        `Swap recipient ${recipient} is not in policy allowedRecipients.`
+      );
+    }
+    if (amount > maxTokenAmount) {
+      addViolation(
+        codes,
+        reasons,
+        'ERR_TOKEN_TRANSFER_EXCEEDS_MAX',
+        `Swap input ${amount.toString()} exceeds maxTokenAmountUnits (${maxTokenAmount.toString()}).`
+      );
+    }
+    tokenOutflow += amount;
+  } else if (call.action === 'SAFE_EXEC_TRANSACTION') {
+    const innerTarget = call.recipient ?? '';
+    const allowedTargets = normalizeLowerSet(policy.allowedTargetContracts);
+    if (call.operationType === 'DELEGATECALL') {
+      addViolation(
+        codes,
+        reasons,
+        'ERR_DELEGATECALL_BLOCKED',
+        `Gnosis Safe execTransaction DELEGATECALL to ${innerTarget} is forbidden.`
+      );
+    }
+    if (blocked.has(innerTarget)) {
+      addViolation(codes, reasons, 'ERR_BLOCKED_ADDRESS', `Safe target ${innerTarget} is blocked.`);
+    }
+    if (allowedTargets.size > 0 && !allowedTargets.has(innerTarget)) {
+      addViolation(
+        codes,
+        reasons,
+        'ERR_UNAPPROVED_TARGET_CONTRACT',
+        `Safe inner target ${innerTarget} is not in allowedTargetContracts.`
+      );
+    }
+    if (BigInt(call.nativeValueWei ?? '0') > BigInt(policy.maxNativeValueWei)) {
+      addViolation(
+        codes,
+        reasons,
+        'ERR_NATIVE_VALUE_EXCEEDS_MAX',
+        `Safe inner ETH value ${call.nativeValueWei} exceeds maxNativeValueWei.`
+      );
+    }
+    for (const child of call.nestedCalls) {
+      tokenOutflow += evaluateEvmCallTree(
+        child,
+        policy,
+        blocked,
+        allowedRecipients,
+        maxTokenAmount,
+        codes,
+        reasons
+      );
+    }
   } else if (call.action === 'NFT_SET_APPROVAL_FOR_ALL') {
     const operator = call.spenderOrOperator ?? '';
     if (blocked.has(operator)) {
@@ -144,7 +227,7 @@ function evaluateEvmCallTree(
         );
       }
     }
-  } else if (call.action === 'MULTICALL') {
+  } else if (call.action === 'MULTICALL' || call.action === 'UNIVERSAL_ROUTER_EXECUTE') {
     for (const child of call.nestedCalls) {
       tokenOutflow += evaluateEvmCallTree(
         child,

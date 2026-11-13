@@ -1,8 +1,28 @@
 import crypto from 'node:crypto';
-import type { BitcoinOutput, DecodedBitcoinTx } from '../types.js';
+import type { Bip143InputContext, BitcoinOutput, DecodedBitcoinTx } from '../types.js';
 
 function strip0x(hex: string): string {
   return hex.startsWith('0x') || hex.startsWith('0X') ? hex.slice(2) : hex;
+}
+
+function doubleSha256(buf: Buffer): Buffer {
+  const first = crypto.createHash('sha256').update(buf).digest();
+  return crypto.createHash('sha256').update(first).digest();
+}
+
+function normalizeBip143ScriptCode(scriptCodeHex: string): Buffer {
+  const clean = strip0x(scriptCodeHex).trim().toLowerCase();
+  if (!clean || !/^[0-9a-f]+$/.test(clean) || clean.length % 2 !== 0) {
+    throw new Error('ERR_INVALID_RAW_TX: Invalid BIP-143 scriptCode hex');
+  }
+  // Accept 20-byte pubkeyHash or 22-byte P2WPKH scriptPubKey (0014<20B>) and expand to P2PKH scriptCode
+  if (clean.length === 40) {
+    return Buffer.from(`76a914${clean}88ac`, 'hex');
+  }
+  if (clean.length === 44 && clean.startsWith('0014')) {
+    return Buffer.from(`76a914${clean.slice(4)}88ac`, 'hex');
+  }
+  return Buffer.from(clean, 'hex');
 }
 
 function readVarInt(buf: Buffer, state: { pos: number }): number {
@@ -50,7 +70,10 @@ function classifyScript(scriptHex: string): BitcoinOutput['scriptType'] {
   return 'UNKNOWN';
 }
 
-export function decodeUnsignedBitcoinTx(rawUnsignedHex: string): DecodedBitcoinTx {
+export function decodeUnsignedBitcoinTx(
+  rawUnsignedHex: string,
+  bip143?: Bip143InputContext
+): DecodedBitcoinTx {
   const clean = strip0x(rawUnsignedHex).trim().toLowerCase();
   if (!/^[0-9a-f]+$/.test(clean) || clean.length % 2 !== 0) {
     throw new Error('ERR_INVALID_RAW_TX: Invalid Bitcoin hex');
@@ -61,6 +84,7 @@ export function decodeUnsignedBitcoinTx(rawUnsignedHex: string): DecodedBitcoinT
   }
 
   const state = { pos: 0 };
+  const versionBytes = buf.subarray(0, 4);
   const version = buf.readInt32LE(state.pos);
   state.pos += 4;
 
@@ -71,17 +95,28 @@ export function decodeUnsignedBitcoinTx(rawUnsignedHex: string): DecodedBitcoinT
   }
 
   const inputCount = readVarInt(buf, state);
+  if (inputCount === 0) {
+    throw new Error('ERR_INVALID_RAW_TX: Bitcoin tx has no inputs');
+  }
+  const outpoints: Buffer[] = [];
+  const sequences: Buffer[] = [];
   for (let i = 0; i < inputCount; i++) {
+    if (state.pos + 36 > buf.length) throw new Error('ERR_INVALID_RAW_TX: Bitcoin input OOB');
+    outpoints.push(buf.subarray(state.pos, state.pos + 36));
     state.pos += 36; // prev txid (32) + vout (4)
-    if (state.pos > buf.length) throw new Error('ERR_INVALID_RAW_TX: Bitcoin input OOB');
     const scriptLen = readVarInt(buf, state);
-    state.pos += scriptLen + 4; // scriptSig + sequence
-    if (state.pos > buf.length) throw new Error('ERR_INVALID_RAW_TX: Bitcoin scriptSig OOB');
+    if (state.pos + scriptLen + 4 > buf.length) {
+      throw new Error('ERR_INVALID_RAW_TX: Bitcoin scriptSig OOB');
+    }
+    state.pos += scriptLen; // scriptSig
+    sequences.push(buf.subarray(state.pos, state.pos + 4));
+    state.pos += 4; // sequence
   }
 
   const voutCount = readVarInt(buf, state);
   const outputs: BitcoinOutput[] = [];
   let totalSats = 0n;
+  const outputsStart = state.pos;
 
   for (let i = 0; i < voutCount; i++) {
     if (state.pos + 8 > buf.length) throw new Error('ERR_INVALID_RAW_TX: Bitcoin output value OOB');
@@ -101,6 +136,7 @@ export function decodeUnsignedBitcoinTx(rawUnsignedHex: string): DecodedBitcoinT
       scriptType: classifyScript(scriptPubKeyHex)
     });
   }
+  const outputsRawSlice = buf.subarray(outputsStart, state.pos);
 
   if (voutCount === 0) {
     throw new Error('ERR_INVALID_RAW_TX: Bitcoin tx has no outputs');
@@ -122,10 +158,55 @@ export function decodeUnsignedBitcoinTx(rawUnsignedHex: string): DecodedBitcoinT
   if (state.pos + 4 !== buf.length) {
     throw new Error('ERR_INVALID_RAW_TX: Bitcoin locktime/trailing bytes invalid');
   }
+  const locktimeBytes = buf.subarray(state.pos, state.pos + 4);
 
-  // Note: prototype hashes serialized unsigned bytes; SegWit broadcast requires per-input BIP-143 preimages.
-  const firstHash = crypto.createHash('sha256').update(buf).digest();
-  const doubleHash = crypto.createHash('sha256').update(firstHash).digest('hex');
+  if (bip143) {
+    if (!Number.isInteger(bip143.inputIndex) || bip143.inputIndex < 0 || bip143.inputIndex >= inputCount) {
+      throw new Error('ERR_INVALID_RAW_TX: BIP-143 inputIndex out of bounds');
+    }
+    const prevoutValue = BigInt(bip143.prevoutValueSats);
+    if (prevoutValue < 0n || prevoutValue > 0xffffffffffffffffn) {
+      throw new Error('ERR_INVALID_RAW_TX: BIP-143 prevoutValueSats out of range');
+    }
+    const scriptCode = normalizeBip143ScriptCode(bip143.scriptCodeHex);
+    const scriptCodeWithLen = Buffer.concat([writeVarInt(scriptCode.length), scriptCode]);
+    const valueBuf = Buffer.alloc(8);
+    valueBuf.writeBigUInt64LE(prevoutValue, 0);
+    const sighashAllBuf = Buffer.from([0x01, 0x00, 0x00, 0x00]);
+
+    const hashPrevouts = doubleSha256(Buffer.concat(outpoints));
+    const hashSequence = doubleSha256(Buffer.concat(sequences));
+    const hashOutputs = doubleSha256(outputsRawSlice);
+
+    const preimage = Buffer.concat([
+      versionBytes,
+      hashPrevouts,
+      hashSequence,
+      outpoints[bip143.inputIndex],
+      scriptCodeWithLen,
+      valueBuf,
+      sequences[bip143.inputIndex],
+      hashOutputs,
+      locktimeBytes,
+      sighashAllBuf
+    ]);
+    const sighashHex = doubleSha256(preimage).toString('hex');
+
+    return {
+      kind: 'bitcoin',
+      version,
+      isSegwit,
+      inputCount,
+      outputs,
+      totalOutputSats: totalSats.toString(),
+      rawUnsignedHex: `0x${clean}`,
+      sighashPayloadHex: `0x${sighashHex}`,
+      sighashAlgorithm: 'bip143',
+      bip143InputIndex: bip143.inputIndex
+    };
+  }
+
+  const doubleHash = doubleSha256(buf).toString('hex');
 
   return {
     kind: 'bitcoin',
@@ -135,7 +216,8 @@ export function decodeUnsignedBitcoinTx(rawUnsignedHex: string): DecodedBitcoinT
     outputs,
     totalOutputSats: totalSats.toString(),
     rawUnsignedHex: `0x${clean}`,
-    sighashPayloadHex: `0x${doubleHash}`
+    sighashPayloadHex: `0x${doubleHash}`,
+    sighashAlgorithm: 'raw-double-sha256'
   };
 }
 

@@ -173,6 +173,151 @@ function decodeCalldataRecursive(
     };
   }
 
+  // Gnosis Safe execTransaction(address to, uint256 value, bytes data, uint8 operation, ...) -> 0x6a761202
+  if (selector === '0x6a761202') {
+    const [safeTo, safeValue, safeData, safeOp] = abiCoder.decode(
+      ['address', 'uint256', 'bytes', 'uint8', 'uint256', 'uint256', 'uint256', 'address', 'address', 'bytes'],
+      argsHex
+    );
+    const innerTarget = String(safeTo).toLowerCase();
+    const innerDataHex = normalizeHex(String(safeData));
+    const operationType = Number(safeOp) === 1 ? 'DELEGATECALL' : 'CALL';
+    const innerCall = decodeCalldataRecursive(innerTarget, innerDataHex, depth + 1);
+    return {
+      depth,
+      target,
+      selector,
+      action: 'SAFE_EXEC_TRANSACTION',
+      recipient: innerTarget,
+      nativeValueWei: BigInt(safeValue).toString(),
+      operationType,
+      nestedCalls: [innerCall],
+      rawDataHex: normalized
+    };
+  }
+
+  // Uniswap Permit2 approve(address token, address spender, uint160 amount, uint48 expiration) -> 0x87517c45
+  if (selector === '0x87517c45') {
+    const [token, spender, amount] = abiCoder.decode(['address', 'address', 'uint160', 'uint48'], argsHex);
+    return {
+      depth,
+      target,
+      selector,
+      action: 'PERMIT2_APPROVE',
+      tokenAddress: String(token).toLowerCase(),
+      spenderOrOperator: String(spender).toLowerCase(),
+      tokenAmount: BigInt(amount).toString(),
+      nestedCalls: [],
+      rawDataHex: normalized
+    };
+  }
+
+  // Uniswap Permit2 permit(address owner, ((address token, uint160 amount, uint48 expiration, uint48 nonce) details, address spender, uint256 sigDeadline), bytes sig) -> 0x2b67b570
+  if (selector === '0x2b67b570') {
+    const [owner, permitSingle] = abiCoder.decode(
+      ['address', 'tuple(tuple(address token, uint160 amount, uint48 expiration, uint48 nonce) details, address spender, uint256 sigDeadline)', 'bytes'],
+      argsHex
+    );
+    return {
+      depth,
+      target,
+      selector,
+      action: 'PERMIT2_PERMIT',
+      fromAddress: String(owner).toLowerCase(),
+      tokenAddress: String(permitSingle.details.token).toLowerCase(),
+      spenderOrOperator: String(permitSingle.spender).toLowerCase(),
+      tokenAmount: BigInt(permitSingle.details.amount).toString(),
+      nestedCalls: [],
+      rawDataHex: normalized
+    };
+  }
+
+  // Uniswap UniversalRouter execute(bytes commands, bytes[] inputs[, uint256 deadline]) -> 0x3593564c | 0x24856bc3
+  if (selector === '0x3593564c' || selector === '0x24856bc3') {
+    if (depth >= MAX_MULTICALL_DEPTH) {
+      throw new Error('ERR_NESTED_MULTICALL_VIOLATION: Max router nesting depth exceeded');
+    }
+    const decodedRouter =
+      selector === '0x3593564c'
+        ? abiCoder.decode(['bytes', 'bytes[]', 'uint256'], argsHex)
+        : abiCoder.decode(['bytes', 'bytes[]'], argsHex);
+    const cmdBytes = bytesFromHex(String(decodedRouter[0]));
+    const inputs = Array.from(decodedRouter[1] as string[]);
+    const nestedCalls: EvmDecodedCall[] = [];
+
+    for (let i = 0; i < cmdBytes.length; i++) {
+      const cmdId = cmdBytes[i] & 0x3f;
+      const inputHex = normalizeHex(inputs[i] ?? '0x');
+      if (cmdId === 0x04 || cmdId === 0x05) {
+        // SWEEP (0x04) / TRANSFER (0x05): (address token, address recipient, uint256 amount)
+        const [token, recipient, amount] = abiCoder.decode(['address', 'address', 'uint256'], inputHex);
+        nestedCalls.push({
+          depth: depth + 1,
+          target,
+          selector: `cmd:0x${cmdId.toString(16).padStart(2, '0')}`,
+          action: 'ERC20_TRANSFER',
+          tokenAddress: String(token).toLowerCase(),
+          recipient: String(recipient).toLowerCase(),
+          tokenAmount: BigInt(amount).toString(),
+          nestedCalls: [],
+          rawDataHex: inputHex
+        });
+      } else if (cmdId === 0x00 || cmdId === 0x08) {
+        // V3_SWAP_EXACT_IN (0x00) / V2_SWAP_EXACT_IN (0x08)
+        const schema =
+          cmdId === 0x00
+            ? ['address', 'uint256', 'uint256', 'bytes', 'bool']
+            : ['address', 'uint256', 'uint256', 'address[]', 'bool'];
+        const [recipient, amountIn] = abiCoder.decode(schema, inputHex);
+        nestedCalls.push({
+          depth: depth + 1,
+          target,
+          selector: `cmd:0x${cmdId.toString(16).padStart(2, '0')}`,
+          action: 'UNIVERSAL_ROUTER_SWAP',
+          recipient: String(recipient).toLowerCase(),
+          tokenAmount: BigInt(amountIn).toString(),
+          nestedCalls: [],
+          rawDataHex: inputHex
+        });
+      } else if (cmdId === 0x0a) {
+        // PERMIT2_PERMIT: (PermitSingle permitSingle, bytes signature)
+        const [permitSingle] = abiCoder.decode(
+          ['tuple(tuple(address token, uint160 amount, uint48 expiration, uint48 nonce) details, address spender, uint256 sigDeadline)', 'bytes'],
+          inputHex
+        );
+        nestedCalls.push({
+          depth: depth + 1,
+          target,
+          selector: 'cmd:0x0a',
+          action: 'PERMIT2_PERMIT',
+          tokenAddress: String(permitSingle.details.token).toLowerCase(),
+          spenderOrOperator: String(permitSingle.spender).toLowerCase(),
+          tokenAmount: BigInt(permitSingle.details.amount).toString(),
+          nestedCalls: [],
+          rawDataHex: inputHex
+        });
+      } else {
+        nestedCalls.push({
+          depth: depth + 1,
+          target,
+          selector: `cmd:0x${cmdId.toString(16).padStart(2, '0')}`,
+          action: 'UNKNOWN_CONTRACT_CALL',
+          nestedCalls: [],
+          rawDataHex: inputHex
+        });
+      }
+    }
+
+    return {
+      depth,
+      target,
+      selector,
+      action: 'UNIVERSAL_ROUTER_EXECUTE',
+      nestedCalls,
+      rawDataHex: normalized
+    };
+  }
+
   const action: EvmActionType = 'UNKNOWN_CONTRACT_CALL';
   return {
     depth,
