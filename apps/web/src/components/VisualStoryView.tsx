@@ -201,19 +201,19 @@ export function VisualStoryView({
   }
 
   return (
-    <div className="space-y-20 pb-16">
+    <div className="space-y-24 pb-20 sm:space-y-28">
       {/* =====================================================================
           SECTION 1: ASYMMETRIC SPLIT HERO + 3D INTERACTIVE X-RAY STAGE
          ===================================================================== */}
-      <section className="grid grid-cols-1 items-center gap-10 pt-2 lg:grid-cols-12">
-        {/* Left Column: Live Testnet Proof Pill + Editorial Pitch + Color Telemetry Strip */}
-        <div className="space-y-6 lg:col-span-5">
-          <div className="flex flex-wrap items-center gap-1.5">
+      <section className="grid grid-cols-1 items-center gap-10 pt-2 lg:grid-cols-12 lg:gap-12 lg:pt-4">
+        {/* Left Column: Live Testnet Proof Pill + Playful Display Hero + CTA */}
+        <div className="space-y-7 lg:col-span-5">
+          <div className="flex flex-wrap items-center gap-2">
             <a
               href="https://testnet.nearblocks.io/address/mpc-firewall.testnet"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-full border border-[#C7D2FE] bg-[#EEF2FF] px-3 py-1 font-mono text-[11px] font-bold text-[#1F3CFF] shadow-2xs hover:bg-[#DBEAFE]"
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#C7D2FE] bg-white px-3 py-1.5 font-mono text-[11px] font-bold text-[#1F3CFF] shadow-xs transition-transform hover:-translate-y-0.5 hover:bg-[#EEF2FF]"
             >
               <span className="h-2 w-2 rounded-full bg-[#059669]" />
               <span>Live: mpc-firewall.testnet</span>
@@ -223,7 +223,7 @@ export function VisualStoryView({
               href="https://testnet.nearblocks.io/txns/9CMZemnkejMCCJHeUXHBtHp4A49T71aLyjoBBQ98ZxVN"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 rounded-full border border-[#A7F3D0] bg-[#ECFDF5] px-3 py-1 font-mono text-[11px] font-bold text-[#065F46] shadow-2xs hover:bg-[#D1FAE5]"
+              className="inline-flex items-center gap-1 rounded-full border border-[#A7F3D0] bg-[#ECFDF5] px-3 py-1.5 font-mono text-[11px] font-bold text-[#065F46] shadow-xs transition-transform hover:-translate-y-0.5 hover:bg-[#D1FAE5]"
             >
               <span>MPC TX: 9CMZem…8ZxVN</span>
               <ArrowUpRight className="h-3 w-3" />
@@ -232,31 +232,35 @@ export function VisualStoryView({
               href="https://testnet.nearblocks.io/address/mpc-firewall-council.sputnikv2.testnet"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 rounded-full border border-[#FDE68A] bg-[#FFFBEB] px-3 py-1 font-mono text-[11px] font-bold text-[#92400E] shadow-2xs hover:bg-[#FEF3C7]"
+              className="inline-flex items-center gap-1 rounded-full border border-[#FDE68A] bg-[#FFFBEB] px-3 py-1.5 font-mono text-[11px] font-bold text-[#92400E] shadow-xs transition-transform hover:-translate-y-0.5 hover:bg-[#FEF3C7]"
             >
               <span>sputnikv2 DAO</span>
               <ArrowUpRight className="h-3 w-3" />
             </a>
           </div>
 
-          <h1 className="text-3xl font-extrabold tracking-[-0.04em] leading-[1.04] text-[#0B0F17] sm:text-5xl xl:text-[52px]">
+          <h1 className="font-display text-4xl font-extrabold tracking-[-0.03em] leading-[1.03] text-[#0B0F17] sm:text-5xl xl:text-[54px]">
             Never let your AI assistant{' '}
-            <span className="bg-gradient-to-r from-[#1F3CFF] via-[#2563EB] to-[#059669] bg-clip-text text-transparent">
+            <span className="relative inline-block bg-gradient-to-r from-[#1F3CFF] via-[#2563EB] to-[#059669] bg-clip-text text-transparent">
               sign a sealed envelope.
+              <span
+                aria-hidden="true"
+                className="absolute -bottom-1 left-0 right-0 h-2 rounded-full bg-gradient-to-r from-[#1F3CFF]/20 via-[#2563EB]/25 to-[#059669]/20"
+              />
             </span>
           </h1>
 
-          <p className="max-w-[46ch] text-sm leading-relaxed text-[#4A5568] sm:text-lg">
+          <p className="max-w-[46ch] text-base leading-relaxed text-[#4A5568] sm:text-[18px]">
             Before your AI spends money across Ethereum, Base, or Bitcoin, MpcFirewall X-rays the
             raw transaction package on NEAR and blocks hidden traps cold.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3.5 pt-1">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1">
             <button
               type="button"
               onClick={onInspect}
               disabled={loading}
-              className="btn-roll group inline-flex w-full sm:w-auto cursor-pointer items-center justify-center gap-2.5 rounded-full bg-gradient-to-r from-[#1F3CFF] to-[#1528B0] px-6 py-3.5 text-sm font-bold text-white shadow-[0_14px_30px_-8px_rgba(31,60,255,0.5)] hover:from-[#0B0F17] hover:to-[#1E293B] disabled:opacity-75"
+              className="btn-roll group inline-flex w-full sm:w-auto cursor-pointer items-center justify-center gap-2.5 rounded-full bg-gradient-to-r from-[#1F3CFF] to-[#1528B0] px-7 py-4 text-sm font-bold text-white shadow-[0_14px_30px_-8px_rgba(31,60,255,0.5)] hover:-translate-y-0.5 hover:from-[#0B0F17] hover:to-[#1E293B] disabled:opacity-75"
             >
               <span className="btn-roll-inner">
                 <span>
@@ -270,7 +274,7 @@ export function VisualStoryView({
 
             <a
               href="#scenarios"
-              className="inline-flex w-full sm:w-auto items-center justify-center gap-1.5 rounded-full border border-[#DCE2EE] bg-white px-5 py-3.5 text-sm font-bold text-[#0B0F17] shadow-2xs hover:border-[#1F3CFF] hover:text-[#1F3CFF]"
+              className="inline-flex w-full sm:w-auto items-center justify-center gap-1.5 rounded-full border border-[#DCE2EE] bg-white px-6 py-4 text-sm font-bold text-[#0B0F17] shadow-xs transition-all hover:-translate-y-0.5 hover:border-[#1F3CFF] hover:text-[#1F3CFF]"
             >
               <span>Explore All 7 Scenarios</span>
               <ArrowDownRight className="h-4 w-4 text-[#1F3CFF]" />
@@ -304,13 +308,13 @@ export function VisualStoryView({
       {/* =====================================================================
           SECTION 2: COLOR-CODED SWISS INDEX SCENARIO STRIP (01 — 07)
          ===================================================================== */}
-      <section id="scenarios" className="scroll-mt-24 space-y-6">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="max-w-2xl space-y-2">
-            <h2 className="text-3xl font-extrabold tracking-[-0.035em] text-[#0B0F17] sm:text-4xl">
+      <section id="scenarios" className="scroll-mt-24 space-y-8">
+        <div className="flex flex-wrap items-end justify-between gap-6">
+          <div className="max-w-2xl space-y-2.5">
+            <h2 className="font-display text-3xl font-extrabold tracking-[-0.03em] text-[#0B0F17] sm:text-4xl">
               Click any errand to X-ray what is really inside.
             </h2>
-            <p className="text-base text-[#4A5568]">
+            <p className="text-base leading-relaxed text-[#4A5568]">
               Seven real transactions built from actual Ethereum, Base, and Bitcoin bytes. Click any
               row below (or use the switcher inside the 3D X-Ray stage above).
             </p>
@@ -365,7 +369,7 @@ export function VisualStoryView({
           </div>
         </div>
 
-        <div className="divide-y divide-[#E2E8F0] overflow-hidden rounded-[26px] border border-[#DCE2EE] bg-white shadow-[0_24px_48px_-24px_rgba(11,15,23,0.1)]">
+        <div className="space-y-3">
           {filteredPresets.map((preset) => {
             const active = preset.id === selectedPresetId;
             const meta = STORY_MAP[preset.id] || FALLBACK_META;
@@ -383,15 +387,15 @@ export function VisualStoryView({
                 key={preset.id}
                 type="button"
                 onClick={() => onSelectPreset(preset)}
-                className={`group flex w-full flex-col gap-4 border-l-4 px-6 py-4.5 text-left transition-all sm:flex-row sm:items-center sm:justify-between ${leftStripeColor} ${
+                className={`group flex w-full flex-col gap-4 rounded-2xl border border-[#DCE2EE] border-l-4 px-5 py-5 text-left shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_32px_-16px_rgba(11,15,23,0.14)] sm:flex-row sm:items-center sm:justify-between sm:px-6 ${leftStripeColor} ${
                   active
-                    ? 'bg-gradient-to-r from-[#EEF2FF] via-[#F8FAFC] to-white'
-                    : 'bg-white hover:bg-[#F8FAFC]'
+                    ? 'border-[#1F3CFF]/40 bg-gradient-to-r from-[#EEF2FF] via-[#F8FAFC] to-white ring-2 ring-[#1F3CFF]/20'
+                    : 'bg-white hover:border-[#C7D2FE]'
                 }`}
               >
                 <div className="flex items-start gap-4 sm:items-center">
                   <span
-                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-mono text-xs font-extrabold transition-colors ${
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-mono text-xs font-extrabold transition-transform duration-200 group-hover:scale-105 ${
                       active
                         ? 'bg-[#1F3CFF] text-white shadow-[0_4px_12px_rgba(31,60,255,0.35)]'
                         : isSafe
@@ -405,7 +409,7 @@ export function VisualStoryView({
                   </span>
 
                   {/* Mini Custom Illustration Thumbnail */}
-                  <div className="hidden h-13 w-18 shrink-0 overflow-hidden rounded-xl border border-[#DCE2EE] bg-[#F8FAFC] p-1 sm:flex sm:items-center sm:justify-center">
+                  <div className="hidden h-14 w-20 shrink-0 overflow-hidden rounded-2xl border border-[#DCE2EE] bg-[#F8FAFC] p-1.5 transition-transform duration-200 group-hover:scale-105 sm:flex sm:items-center sm:justify-center">
                     <img
                       src={meta.illustration}
                       alt={meta.humanTitle}
@@ -415,20 +419,20 @@ export function VisualStoryView({
 
                   <div>
                     <div className="flex flex-wrap items-center gap-2.5">
-                      <span className="text-base font-extrabold tracking-tight text-[#0B0F17]">
+                      <span className="font-display text-base font-extrabold tracking-tight text-[#0B0F17] sm:text-lg">
                         {meta.humanTitle}
                       </span>
-                      <span className="rounded-full border border-[#DCE2EE] bg-white px-2.5 py-0.5 font-mono text-[11px] font-medium text-[#4A5568]">
+                      <span className="rounded-full border border-[#DCE2EE] bg-[#F8FAFC] px-2.5 py-0.5 font-mono text-[11px] font-medium text-[#4A5568]">
                         {meta.networkLabel}
                       </span>
                     </div>
-                    <p className="mt-0.5 text-sm text-[#4A5568]">{meta.plainSummary}</p>
+                    <p className="mt-1 text-sm text-[#4A5568]">{meta.plainSummary}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between gap-4 sm:justify-end">
                   <span
-                    className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1 text-xs font-bold ${
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-bold ${
                       isSafe
                         ? 'border-[#A7F3D0] bg-[#ECFDF5] text-[#059669]'
                         : isDao
@@ -446,7 +450,7 @@ export function VisualStoryView({
                     className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-all ${
                       active
                         ? 'border-[#1F3CFF] bg-[#1F3CFF] text-white'
-                        : 'border-[#DCE2EE] bg-white text-[#0B0F17] group-hover:translate-x-0.5 group-hover:border-[#1F3CFF] group-hover:text-[#1F3CFF]'
+                        : 'border-[#DCE2EE] bg-white text-[#0B0F17] group-hover:translate-x-1 group-hover:border-[#1F3CFF] group-hover:text-[#1F3CFF]'
                     }`}
                   >
                     <ArrowRight className="h-4 w-4" />
@@ -461,20 +465,20 @@ export function VisualStoryView({
       {/* =====================================================================
           SECTION 3: SIDE-BY-SIDE ARCHITECTURAL CONSEQUENCE STAGE
          ===================================================================== */}
-      <section className="space-y-6">
-        <div className="max-w-2xl space-y-2">
-          <h2 className="text-3xl font-extrabold tracking-[-0.035em] text-[#0B0F17] sm:text-4xl">
+      <section className="space-y-8">
+        <div className="max-w-2xl space-y-2.5">
+          <h2 className="font-display text-3xl font-extrabold tracking-[-0.03em] text-[#0B0F17] sm:text-4xl">
             Why current NEAR agent locks cannot see the trap.
           </h2>
-          <p className="text-base text-[#4A5568]">
+          <p className="text-base leading-relaxed text-[#4A5568]">
             Existing NEAR Function Call Keys act like a lobby badge: they check who your AI
             assistant is, then let it walk straight up to the vault with a sealed black envelope.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-7 lg:grid-cols-2">
           {/* Left: Today Without MpcFirewall (Obsidian Field Card) */}
-          <div className="obsidian-grid flex flex-col justify-between rounded-[26px] border border-[#1E293B] bg-[#0B0F17] p-8 text-white shadow-xl">
+          <div className="obsidian-grid flex flex-col justify-between rounded-[28px] border border-[#1E293B] bg-[#0B0F17] p-7 text-white shadow-xl transition-transform duration-200 hover:-translate-y-0.5 sm:p-9">
             <div className="space-y-5">
               <div className="flex items-center justify-between">
                 <span className="inline-flex items-center gap-2 rounded-full border border-[#F43F5E]/40 bg-[#F43F5E]/15 px-3.5 py-1 text-xs font-bold text-[#FDA4AF]">
@@ -510,7 +514,7 @@ export function VisualStoryView({
           </div>
 
           {/* Right: With MpcFirewall (Tinted Emerald-Cobalt Card) */}
-          <div className="flex flex-col justify-between rounded-[26px] border-2 border-[#6EE7B7] bg-gradient-to-br from-[#ECFDF5]/90 via-white to-[#EEF2FF]/90 p-8 shadow-[0_24px_48px_-24px_rgba(5,150,105,0.18)]">
+          <div className="flex flex-col justify-between rounded-[28px] border-2 border-[#6EE7B7] bg-gradient-to-br from-[#ECFDF5]/95 via-white to-[#EEF2FF]/90 p-7 shadow-[0_24px_48px_-24px_rgba(5,150,105,0.2)] transition-transform duration-200 hover:-translate-y-0.5 sm:p-9">
             <div className="space-y-5">
               <div className="flex items-center justify-between">
                 <span className="inline-flex items-center gap-2 rounded-full border border-[#6EE7B7] bg-[#059669] px-3.5 py-1 text-xs font-bold text-white shadow-2xs">
@@ -553,19 +557,19 @@ export function VisualStoryView({
       {/* =====================================================================
           SECTION 4: 3-CELL ASYMMETRIC BENTO GRID (HOW IT FITS IN NEAR)
          ===================================================================== */}
-      <section className="space-y-6">
-        <div className="space-y-2">
+      <section className="space-y-8">
+        <div className="space-y-2.5">
           <div className="inline-flex items-center gap-2 rounded-full border border-[#C7D2FE] bg-[#EEF2FF] px-3.5 py-1 font-mono text-[11px] font-bold tracking-wider text-[#1F3CFF] uppercase">
             02 / BUILT FOR THE NEAR AGENT ECONOMY
           </div>
-          <h2 className="text-3xl font-extrabold tracking-[-0.035em] text-[#0B0F17] sm:text-4xl">
+          <h2 className="font-display text-3xl font-extrabold tracking-[-0.03em] text-[#0B0F17] sm:text-4xl">
             How it plugs into your NEAR assistant in minutes.
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="grid grid-cols-1 gap-7 lg:grid-cols-12">
           {/* Cell 1 (7 Cols): Three Smart Spending Lanes */}
-          <div className="flex flex-col justify-between rounded-[26px] border border-[#DCE2EE] bg-gradient-to-b from-white to-[#F8FAFC] p-7 shadow-[0_20px_40px_-24px_rgba(11,15,23,0.08)] lg:col-span-7">
+          <div className="flex flex-col justify-between rounded-[28px] border border-[#DCE2EE] bg-gradient-to-b from-white to-[#F8FAFC] p-7 shadow-[0_20px_40px_-24px_rgba(11,15,23,0.08)] transition-transform duration-200 hover:-translate-y-0.5 sm:p-8 lg:col-span-7">
             <div className="space-y-3">
               <div className="inline-flex items-center gap-1.5 rounded-full border border-[#A7F3D0] bg-[#ECFDF5] px-3 py-1 text-xs font-bold text-[#059669]">
                 <Landmark className="h-3.5 w-3.5" />
@@ -603,7 +607,7 @@ export function VisualStoryView({
           </div>
 
           {/* Cell 2 (5 Cols, Vibrant Cobalt-Indigo Surface): Private Lie Detector */}
-          <div className="flex flex-col justify-between rounded-[26px] border-2 border-[#A5B4FC] bg-gradient-to-br from-[#EEF2FF] via-[#E0E7FF] to-[#DBEAFE] p-7 shadow-[0_20px_40px_-24px_rgba(31,60,255,0.18)] lg:col-span-5">
+          <div className="flex flex-col justify-between rounded-[28px] border-2 border-[#A5B4FC] bg-gradient-to-br from-[#EEF2FF] via-[#E0E7FF] to-[#DBEAFE] p-7 shadow-[0_20px_40px_-24px_rgba(31,60,255,0.18)] transition-transform duration-200 hover:-translate-y-0.5 sm:p-8 lg:col-span-5">
             <div className="space-y-3">
               <div className="inline-flex items-center gap-1.5 rounded-full bg-[#1F3CFF] px-3 py-1 text-xs font-bold text-white shadow-2xs">
                 <Cpu className="h-3.5 w-3.5" />

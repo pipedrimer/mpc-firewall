@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --ground: #F2F4F9;
+  --ground: #F6F8FC;
   --surface: #FFFFFF;
   --obsidian: #0B0F17;
   --ink: #0B0F17;
@@ -12,9 +12,11 @@
   --danger: #E11D48;
   --amber: #D97706;
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-out-snappy: cubic-bezier(0.23, 1, 0.32, 1);
-  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-mono: var(--font-jetbrains), "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-display: var(--font-display), var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: var(--font-mono), "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 html {
@@ -25,17 +27,25 @@ html,
 body {
   background-color: var(--ground);
   background-image:
-    radial-gradient(circle at 12% 8%, rgba(31, 60, 255, 0.08) 0%, transparent 42%),
-    radial-gradient(circle at 88% 14%, rgba(5, 150, 105, 0.07) 0%, transparent 38%),
-    radial-gradient(circle at 50% 58%, rgba(225, 29, 72, 0.04) 0%, transparent 45%),
-    radial-gradient(rgba(11, 15, 23, 0.055) 1px, transparent 1px);
+    radial-gradient(circle at 10% 6%, rgba(31, 60, 255, 0.11) 0%, transparent 40%),
+    radial-gradient(circle at 90% 10%, rgba(16, 185, 129, 0.1) 0%, transparent 38%),
+    radial-gradient(circle at 52% 62%, rgba(245, 158, 11, 0.06) 0%, transparent 46%),
+    radial-gradient(rgba(15, 23, 42, 0.055) 1px, transparent 1px);
   background-size: 100% 100%, 100% 100%, 100% 100%, 24px 24px;
   background-attachment: fixed;
   color: var(--ink);
   font-family: var(--font-sans);
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01";
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.025em;
 }
 
 code,

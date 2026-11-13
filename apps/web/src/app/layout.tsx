@@ -1,18 +1,25 @@
 import type { Metadata, Viewport } from 'next';
-import { Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
+import { Bricolage_Grotesque, DM_Sans, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 
-const jakarta = Plus_Jakarta_Sans({
+const bricolage = Bricolage_Grotesque({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
-  variable: '--font-jakarta',
+  weight: ['500', '600', '700', '800'],
+  variable: '--font-display',
+  display: 'swap'
+});
+
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-sans',
   display: 'swap'
 });
 
 const jetbrains = JetBrains_Mono({
   subsets: ['latin'],
-  weight: ['400', '500', '600'],
-  variable: '--font-jetbrains',
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-mono',
   display: 'swap'
 });
 
@@ -30,8 +37,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${jakarta.variable} ${jetbrains.variable}`}>
-      <body className="min-h-[100dvh] bg-[#F4F5F8] text-[#0B0F17] antialiased selection:bg-[#1F3CFF] selection:text-white">
+    <html lang="en" className={`${bricolage.variable} ${dmSans.variable} ${jetbrains.variable}`}>
+      <body className="min-h-[100dvh] bg-[#F6F8FC] text-[#0B0F17] antialiased selection:bg-[#1F3CFF] selection:text-white">
         {children}
       </body>
     </html>

@@ -317,7 +317,7 @@ export function HomeConsole({ initialPresets, initialPolicy }: HomeConsoleProps)
   }
 
   return (
-    <div className="min-h-[100dvh] bg-[#F4F5F8] text-[#0B0F17]">
+    <div className="min-h-[100dvh] text-[#0B0F17]">
       <HeaderStatusBar
         health={health}
         rpc={rpc}
@@ -330,7 +330,7 @@ export function HomeConsole({ initialPresets, initialPolicy }: HomeConsoleProps)
         onChangeViewMode={setViewMode}
       />
 
-      <main className="mx-auto max-w-[1400px] px-6 py-8">
+      <main className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6 lg:px-8 lg:py-11">
         {errorMsg && (
           <div className="mb-6 rounded-xl border border-[#E11D48]/30 bg-[#E11D48]/[0.06] px-4 py-3 text-xs font-medium text-[#E11D48]">
             {errorMsg}
