@@ -48,28 +48,22 @@ export function HeaderStatusBar({
     : null;
 
   return (
-    <header className="sticky top-0 z-50 border-b border-black/10 bg-white/95 backdrop-blur-md">
-      {/* Subtle NEAR Mint -> Cobalt Hairline */}
-      <div className="h-[2px] w-full bg-gradient-to-r from-[#00C758] via-[#1F3CFF] to-black" />
-
-      {/* Responsive wrap on <md, crisp single-row on md+ matching near.org container width */}
+    <header className="sticky top-0 z-50 border-b border-black/15 bg-white/95 backdrop-blur-md">
+      {/* Responsive wrap on <md, crisp Swiss single-row on md+ */}
       <div className="mx-auto flex max-w-[1365px] flex-wrap items-center justify-between gap-x-2 gap-y-2 px-4 py-2.5 sm:px-8 md:h-[72px] md:flex-nowrap md:gap-4 md:py-0">
         {/* Left: Brand Identity */}
-        <div className="order-1 flex shrink-0 items-center gap-2.5 sm:gap-3">
-          <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-black text-white">
-            <ShieldCheck className="h-4.5 w-4.5 text-[#05DF72]" />
-            <span className="absolute -right-1 -top-1 flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#05DF72] opacity-75" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full border border-white bg-[#00C758]" />
-            </span>
+        <div className="order-1 flex shrink-0 items-center gap-3">
+          <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-[4px] bg-black text-white">
+            <ShieldCheck className="h-4 w-4 text-[#05DF72]" />
+            <span className="absolute -right-1 -top-1 flex h-2 w-2 rounded-xs bg-[#05DF72]" />
           </div>
 
-          <div className="flex items-center gap-2.5">
-            <span className="font-display text-base sm:text-lg font-extrabold tracking-tight text-black">
+          <div className="flex items-center gap-3">
+            <span className="font-display text-base sm:text-lg font-bold tracking-[-0.03em] text-black">
               MpcFirewall
             </span>
-            <span className="hidden items-center gap-1.5 rounded border border-black/10 bg-[#F9F9FA] px-2.5 py-0.5 font-mono text-[11px] font-semibold text-[#334155] lg:inline-flex">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#00C758]" />
+            <span className="hidden items-center gap-1.5 border-l border-black/15 pl-3 font-mono text-[11px] font-medium text-[#525B6C] lg:inline-flex">
+              <span className="h-1.5 w-1.5 rounded-xs bg-[#00C758]" />
               {health?.mpcSignerContractId ?? 'v1.signer-prod.testnet'}
             </span>
           </div>
@@ -78,14 +72,14 @@ export function HeaderStatusBar({
         {/* Center on md+ / Full-width 2nd row on mobile: Studio vs. Protocol Mode Switcher */}
         <nav
           aria-label="Console view mode"
-          className="order-3 grid w-full grid-cols-2 items-center rounded-lg border border-black/10 bg-[#F9F9FA] p-1 md:order-2 md:flex md:w-auto md:shrink-0"
+          className="order-3 grid w-full grid-cols-2 items-center rounded-[4px] border border-black/15 bg-[#F9F9FA] p-0.5 md:order-2 md:flex md:w-auto md:shrink-0"
         >
           <button
             type="button"
             onClick={() => onChangeViewMode('story')}
-            className={`inline-flex items-center justify-center gap-1.5 rounded-md px-3 sm:px-4 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
+            className={`inline-flex items-center justify-center gap-1.5 rounded-[3px] px-3 sm:px-4 py-1.5 text-xs font-semibold whitespace-nowrap transition-all ${
               viewMode === 'story'
-                ? 'bg-black text-white shadow-xs'
+                ? 'bg-black text-white'
                 : 'text-[#525B6C] hover:text-black'
             }`}
           >
@@ -99,9 +93,9 @@ export function HeaderStatusBar({
           <button
             type="button"
             onClick={() => onChangeViewMode('protocol')}
-            className={`inline-flex items-center justify-center gap-1.5 rounded-md px-3 sm:px-4 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
+            className={`inline-flex items-center justify-center gap-1.5 rounded-[3px] px-3 sm:px-4 py-1.5 text-xs font-semibold whitespace-nowrap transition-all ${
               viewMode === 'protocol'
-                ? 'bg-black text-white shadow-xs'
+                ? 'bg-black text-white'
                 : 'text-[#525B6C] hover:text-black'
             }`}
           >
@@ -110,7 +104,7 @@ export function HeaderStatusBar({
           </button>
         </nav>
 
-        {/* Right: Clean Action Buttons Only */}
+        {/* Right: Sharp Action Controls */}
         <div className="order-2 flex shrink-0 items-center gap-1.5 sm:gap-2 text-xs md:order-3">
           {/* Live Testnet RPC Key Button */}
           <button
@@ -122,9 +116,9 @@ export function HeaderStatusBar({
                 ? `Live NEAR Testnet Root Key (${health?.mpcSignerContractId ?? 'v1.signer-prod.testnet'}): ${rpc.mpcRootPublicKey}${rpc.firewallContractDeployed ? ` • Firewall WASM live on ${rpc.firewallContractId}` : ''}`
                 : 'Query live NEAR Testnet RPC for v1.signer-prod.testnet root key & mpc-firewall.testnet state'
             }
-            className={`inline-flex items-center gap-1 sm:gap-1.5 rounded-lg border px-2.5 sm:px-3.5 py-1.5 font-semibold whitespace-nowrap transition-all disabled:opacity-50 ${
+            className={`inline-flex items-center gap-1 sm:gap-1.5 rounded-[4px] border px-2.5 sm:px-3 py-1.5 font-medium whitespace-nowrap transition-all disabled:opacity-50 ${
               shortKey
-                ? 'border-[#00C758]/40 bg-[#F0FDF4] text-[#032E15]'
+                ? 'border-[#00C758]/50 bg-[#F0FDF4] text-[#032E15]'
                 : 'border-black/15 bg-white text-black hover:border-black hover:bg-black hover:text-white'
             }`}
           >
@@ -145,7 +139,7 @@ export function HeaderStatusBar({
           {/* Docs Link */}
           <Link
             href="/docs"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-black/15 bg-white px-2.5 sm:px-3.5 py-1.5 font-semibold text-black whitespace-nowrap transition-all hover:border-black hover:bg-black hover:text-white"
+            className="inline-flex items-center gap-1.5 rounded-[4px] border border-black/15 bg-white px-2.5 sm:px-3 py-1.5 font-semibold text-black whitespace-nowrap transition-all hover:border-black hover:bg-black hover:text-white"
             title="Integration & Protocol Documentation"
           >
             <BookOpen className="h-3.5 w-3.5 shrink-0 text-[#1F3CFF]" />
@@ -156,7 +150,7 @@ export function HeaderStatusBar({
           <button
             type="button"
             onClick={onResetDemo}
-            className="group inline-flex items-center gap-1 sm:gap-1.5 rounded-lg border border-black/15 bg-white px-2.5 sm:px-3 py-1.5 font-semibold text-black whitespace-nowrap transition-all hover:border-black hover:bg-black hover:text-white"
+            className="group inline-flex items-center gap-1 sm:gap-1.5 rounded-[4px] border border-black/15 bg-white px-2.5 sm:px-3 py-1.5 font-semibold text-black whitespace-nowrap transition-all hover:border-black hover:bg-black hover:text-white"
             title="Reset demo state"
             aria-label="Reset demo state"
           >

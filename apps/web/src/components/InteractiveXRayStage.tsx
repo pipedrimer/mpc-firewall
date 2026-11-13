@@ -7,7 +7,6 @@ import {
   AlertOctagon,
   ArrowRight,
   ArrowUpRight,
-  Box,
   Bug,
   CheckCircle2,
   ChevronLeft,
@@ -597,17 +596,6 @@ export function InteractiveXRayStage({
       className="relative select-none"
       style={{ perspective: '1400px' }}
     >
-      {/* Ambient Color Halo Behind 3D Stage */}
-      <div
-        className={`pointer-events-none absolute -inset-3 -z-10 rounded-[32px] opacity-70 blur-2xl transition-colors duration-500 ${
-          isBlocked
-            ? 'bg-gradient-to-tr from-[#E11D48]/25 via-[#1F3CFF]/15 to-[#F43F5E]/25'
-            : isEscalated
-              ? 'bg-gradient-to-tr from-[#D97706]/25 via-[#1F3CFF]/15 to-[#F59E0B]/25'
-              : 'bg-gradient-to-tr from-[#059669]/25 via-[#1F3CFF]/20 to-[#38BDF8]/25'
-        }`}
-      />
-
       {/* =====================================================================
           3D TILTING CHASSIS (NO overflow-hidden here so preserve-3d works!)
          ===================================================================== */}
@@ -616,40 +604,40 @@ export function InteractiveXRayStage({
         className="relative transition-shadow duration-300"
         style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
       >
-        {/* Floating 3D Parallax Badge */}
+        {/* Architectural Telemetry Header Strip (Flush Hardware Corner) */}
         <div
           ref={floatingBadgeRef}
-          className="pointer-events-none absolute -top-3.5 right-6 z-40 hidden sm:flex"
-          style={{ transform: 'translate3d(0px, 0px, 28px)' }}
+          className="mb-2 flex items-center justify-between border border-black/15 bg-[#F9F9FA] px-3 py-1.5 font-mono text-[11px] font-semibold text-black"
         >
-          <div
-            className={`inline-flex items-center gap-2 rounded-full border-2 border-white px-3.5 py-1 text-xs font-extrabold text-white shadow-[0_10px_25px_rgba(11,15,23,0.28)] ${
-              isBlocked
-                ? 'bg-[#E11D48]'
-                : isEscalated
-                  ? 'bg-[#D97706]'
-                  : 'bg-[#059669]'
+          <span className="inline-flex items-center gap-2">
+            <span
+              className={`h-2 w-2 rounded-xs ${
+                isBlocked ? 'bg-[#E11D48]' : isEscalated ? 'bg-[#D97706]' : 'bg-[#00C758]'
+              }`}
+            />
+            <span>MPC-XRAY // HARDWARE ENGINE</span>
+          </span>
+          <span
+            className={`font-bold ${
+              isBlocked ? 'text-[#E11D48]' : isEscalated ? 'text-[#D97706]' : 'text-[#008138]'
             }`}
           >
-            <Box className="h-3.5 w-3.5" />
-            <span>
-              {isTamperedSimulation
-                ? 'PROMPT-INJECTION DETECTED'
-                : daoApprovedByHuman
-                  ? 'CFO CO-SIGNED • APPROVED'
-                  : `3D X-Ray • ${meta.dollarBadge}`}
-            </span>
-          </div>
+            {isTamperedSimulation
+              ? 'PROMPT-INJECTION DETECTED'
+              : daoApprovedByHuman
+                ? 'CFO CO-SIGNED • APPROVED'
+                : meta.dollarBadge.toUpperCase()}
+          </span>
         </div>
 
         {/* Inner Clipped Card Surface */}
         <div
-          className={`relative overflow-hidden rounded-[26px] border-2 bg-white shadow-[0_32px_64px_-20px_rgba(11,15,23,0.18)] transition-colors duration-300 ${
+          className={`relative overflow-hidden rounded-lg border bg-white shadow-[0_20px_50px_-28px_rgba(11,15,23,0.22)] transition-colors duration-300 ${
             isBlocked
-              ? 'border-[#FDA4AF]'
+              ? 'border-[#E11D48]/60'
               : isEscalated
-                ? 'border-[#FCD34D]'
-                : 'border-[#93C5FD]'
+                ? 'border-[#D97706]/60'
+                : 'border-black/20'
           }`}
         >
           {/* Specular Glare Overlay */}

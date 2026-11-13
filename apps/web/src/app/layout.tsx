@@ -1,25 +1,25 @@
 import type { Metadata, Viewport } from 'next';
-import { Bricolage_Grotesque, DM_Sans, JetBrains_Mono } from 'next/font/google';
+import { IBM_Plex_Mono, Mona_Sans, Space_Grotesk } from 'next/font/google';
 import './globals.css';
 
-const bricolage = Bricolage_Grotesque({
+const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
-  weight: ['500', '600', '700', '800'],
-  variable: '--font-display',
+  weight: ['500', '600', '700'],
+  variable: '--next-font-display',
   display: 'swap'
 });
 
-const dmSans = DM_Sans({
+const monaSans = Mona_Sans({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-sans',
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--next-font-sans',
   display: 'swap'
 });
 
-const jetbrains = JetBrains_Mono({
+const ibmPlexMono = IBM_Plex_Mono({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
-  variable: '--font-mono',
+  variable: '--next-font-mono',
   display: 'swap'
 });
 
@@ -30,15 +30,15 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'MpcFirewall — X-Ray Security Gate for NEAR AI Assistants',
+  title: 'MpcFirewall — Pre-Signing Security Firewall for NEAR Agents',
   description:
-    'Zero-blind-signing RLP, EVM ABI calldata, nested multicall, and Bitcoin raw-transaction security layer for NEAR Chain Signatures (v1.signer).'
+    'Deterministic RLP, EVM ABI calldata, nested multicall, and Bitcoin raw-transaction security layer for NEAR Chain Signatures (v1.signer).'
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${bricolage.variable} ${dmSans.variable} ${jetbrains.variable}`}>
-      <body className="min-h-[100dvh] bg-[#F6F8FC] text-[#0B0F17] antialiased selection:bg-[#1F3CFF] selection:text-white">
+    <html lang="en" className={`${spaceGrotesk.variable} ${monaSans.variable} ${ibmPlexMono.variable}`}>
+      <body className="min-h-[100dvh] bg-white text-[#0B0F17] antialiased selection:bg-[#05DF72] selection:text-black">
         {children}
       </body>
     </html>
