@@ -1,11 +1,14 @@
 'use client';
 
-import type { EvmDecodedCall, FirewallEvaluationRecord } from '@mpc-firewall/core';
+import type { Bip143InputContext, EvmDecodedCall, FirewallEvaluationRecord } from '@mpc-firewall/core';
 import { AlertOctagon, ArrowRightLeft, CheckCircle2, Cpu, EyeOff, Landmark } from 'lucide-react';
 import { useState } from 'react';
+import { LiveTestnetExecutePanel } from '@/components/LiveTestnetExecutePanel';
 
 interface ProofInspectorProps {
   record: FirewallEvaluationRecord | null;
+  presetId?: string;
+  bip143Input?: Bip143InputContext;
 }
 
 function CallNode({ call }: { call: EvmDecodedCall }) {
@@ -50,7 +53,7 @@ function CallNode({ call }: { call: EvmDecodedCall }) {
   );
 }
 
-export function ProofInspector({ record }: ProofInspectorProps) {
+export function ProofInspector({ record, presetId, bip143Input }: ProofInspectorProps) {
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteOutput, setQuoteOutput] = useState<string | null>(null);
 
@@ -231,6 +234,9 @@ export function ProofInspector({ record }: ProofInspectorProps) {
         )}
       </div>
 
+      {/* Live Browser-Triggered NEAR Testnet Execution */}
+      <LiveTestnetExecutePanel record={record} presetId={presetId} bip143Input={bip143Input} />
+
       {/* Live NEAR Testnet Deployment & Chain Signatures Proofs */}
       <div className="rounded-lg border border-[#DCE0E8] bg-[#F8F9FB] p-3 text-[11px]">
         <div className="font-semibold text-[#0B0F17]">Live NEAR Testnet Contract Proofs</div>
@@ -247,14 +253,25 @@ export function ProofInspector({ record }: ProofInspectorProps) {
             </a>
           </div>
           <div>
-            Deploy + Init TX:{' '}
+            Council DAO:{' '}
             <a
-              href="https://testnet.nearblocks.io/txns/3B94S9sB92jABvy2rYt4sZXiD4Rri47v3RpULScY3XQs"
+              href="https://testnet.nearblocks.io/address/mpc-firewall-council.sputnikv2.testnet"
               target="_blank"
               rel="noreferrer"
-              className="text-[#1F3CFF] underline"
+              className="font-semibold text-[#D97706] underline"
             >
-              3B94S9…Y3XQs
+              mpc-firewall-council.sputnikv2.testnet
+            </a>
+          </div>
+          <div>
+            DAO Proposal TX:{' '}
+            <a
+              href="https://testnet.nearblocks.io/txns/txUCafGwPs9Fvm4xUomWBKyQiwNFkLeLMaEaYgqNrL2"
+              target="_blank"
+              rel="noreferrer"
+              className="text-[#D97706] underline"
+            >
+              txUCaf…qNrL2
             </a>
           </div>
           <div>
@@ -266,6 +283,17 @@ export function ProofInspector({ record }: ProofInspectorProps) {
               className="text-[#059669] underline"
             >
               9CMZem…8ZxVN
+            </a>
+          </div>
+          <div>
+            Live BTC BIP-143 Sign TX:{' '}
+            <a
+              href="https://testnet.nearblocks.io/txns/4cQjHQxoUHeEcJ1KquhE7aXsVWJt3mHBG8YGVLDcWZ31"
+              target="_blank"
+              rel="noreferrer"
+              className="text-[#059669] underline"
+            >
+              4cQjHQ…cWZ31
             </a>
           </div>
         </div>

@@ -70,7 +70,7 @@ NEAR_NETWORK_ID=testnet
 NEAR_RPC_URL=https://rpc.testnet.near.org
 MPC_SIGNER_CONTRACT_ID=v1.signer-prod.testnet
 MPC_FIREWALL_CONTRACT_ID=mpc-firewall.testnet
-TREZU_DAO_ACCOUNT=mpc-firewall-council.sputnik-dao.near
+TREZU_DAO_ACCOUNT=mpc-firewall-council.sputnikv2.testnet
 ```
 
 > **Note on `OUTLAYER_API_KEY` / `OUTLAYER_BASE_URL`:** These appear in `.env.example` as optional placeholders, but current runtime modules (`packages/core/src/integrations/outlayer.ts`) build `v1.signer` and SputnikDAO/Trezu `add_proposal` payloads locally without calling an external OutLayer API key.

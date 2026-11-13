@@ -1,7 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { FirewallChainKind, FirewallEvaluationRecord, FirewallPolicy } from '@mpc-firewall/core';
+import type {
+  Bip143InputContext,
+  FirewallChainKind,
+  FirewallEvaluationRecord,
+  FirewallPolicy
+} from '@mpc-firewall/core';
 import { HeaderStatusBar, type HealthSnapshot, type NearRpcSnapshot } from '@/components/HeaderStatusBar';
 import { PolicyRail } from '@/components/PolicyRail';
 import { TxWorkbench, type ScenarioPresetView } from '@/components/TxWorkbench';
@@ -46,7 +51,8 @@ export function HomeConsole({ initialPresets, initialPolicy }: HomeConsoleProps)
       targetHex: string,
       targetIntent: string,
       resetFirst = false,
-      animateSweep = true
+      animateSweep = true,
+      targetBip143Input?: Bip143InputContext
     ) => {
       setInspecting(true);
       setErrorMsg(null);
@@ -67,7 +73,8 @@ export function HomeConsole({ initialPresets, initialPolicy }: HomeConsoleProps)
             body: JSON.stringify({
               chainKind: targetChainKind,
               rawUnsignedHex: targetHex,
-              agentIntent: targetIntent
+              agentIntent: targetIntent,
+              ...(targetBip143Input ? { bip143Input: targetBip143Input } : {})
             })
           }),
           animateSweep ? new Promise((r) => setTimeout(r, 380)) : Promise.resolve()
@@ -125,7 +132,8 @@ export function HomeConsole({ initialPresets, initialPolicy }: HomeConsoleProps)
               firstPreset.rawUnsignedHex,
               firstPreset.agentIntent,
               false,
-              false
+              false,
+              firstPreset.bip143Input
             );
           }
         }
@@ -205,7 +213,8 @@ export function HomeConsole({ initialPresets, initialPolicy }: HomeConsoleProps)
             currentPreset.rawUnsignedHex,
             currentPreset.agentIntent,
             false,
-            true
+            true,
+            currentPreset.bip143Input
           );
         } else {
           setLatestRecord(null);
@@ -231,7 +240,8 @@ export function HomeConsole({ initialPresets, initialPolicy }: HomeConsoleProps)
         preset.rawUnsignedHex,
         preset.agentIntent,
         false,
-        true
+        true,
+        preset.bip143Input
       );
     }
   }
@@ -286,8 +296,16 @@ export function HomeConsole({ initialPresets, initialPolicy }: HomeConsoleProps)
       }
     }
 
+    const matchedPreset = presets.find((p) => p.id === selectedPresetId && p.rawUnsignedHex === targetHex);
     const shouldResetReplayInStory = viewMode === 'story' && !isTamperedSimulation;
-    await executeInspectPayload(targetKind, targetHex, targetIntent, shouldResetReplayInStory, true);
+    await executeInspectPayload(
+      targetKind,
+      targetHex,
+      targetIntent,
+      shouldResetReplayInStory,
+      true,
+      matchedPreset?.bip143Input
+    );
   }
 
   return (
@@ -359,7 +377,11 @@ export function HomeConsole({ initialPresets, initialPolicy }: HomeConsoleProps)
               </div>
 
               <div className="lg:col-span-4">
-                <ProofInspector record={latestRecord} />
+                <ProofInspector
+                  record={latestRecord}
+                  presetId={selectedPresetId}
+                  bip143Input={presets.find((p) => p.id === selectedPresetId)?.bip143Input}
+                />
               </div>
             </div>
 

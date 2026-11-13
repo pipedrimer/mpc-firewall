@@ -32,7 +32,8 @@ async function main() {
     const result = await service.inspectAndDispatch({
       chainKind: preset.chainKind,
       rawUnsignedHex: preset.rawUnsignedHex,
-      agentIntent: preset.agentIntent
+      agentIntent: preset.agentIntent,
+      bip143Input: preset.bip143Input
     });
 
     const want = expected[preset.id];

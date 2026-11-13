@@ -42,7 +42,7 @@ near contract deploy <your-firewall-account>.testnet \
       "allow_unknown_selectors": false,
       "max_btc_output_sats": 100000,
       "allowed_btc_scripts": ["00141111111111111111111111111111111111111111"],
-      "dao_account": "mpc-firewall-council.sputnik-dao.near"
+      "dao_account": "mpc-firewall-council.sputnikv2.testnet"
     }
   }' prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' \
   sign-as <your-firewall-account>.testnet network-config testnet sign-with-keychain send

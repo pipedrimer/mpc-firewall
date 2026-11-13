@@ -11,6 +11,11 @@ export interface ScenarioPresetView {
   agentIntent: string;
   description: string;
   rawUnsignedHex: string;
+  bip143Input?: {
+    inputIndex: number;
+    prevoutValueSats: string;
+    scriptCodeHex: string;
+  };
 }
 
 interface TxWorkbenchProps {

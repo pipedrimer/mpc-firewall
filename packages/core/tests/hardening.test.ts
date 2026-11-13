@@ -7,6 +7,7 @@ import { ethers } from 'ethers';
 import {
   APPROVED_BTC_P2WPKH_SCRIPT,
   APPROVED_VENDOR_ADDRESS,
+  buildPresetScenarios,
   buildSampleUnsignedBtcTx,
   decodeUnsignedBitcoinTx,
   decodeUnsignedEvmTx,
@@ -501,6 +502,26 @@ describe('hardening: fail-closed TEE, Permit2/ERC2612, daily native cap, concurr
     assert.equal(decodedSwap.rootCall.nestedCalls?.[0]?.action, 'UNIVERSAL_ROUTER_SWAP');
     const swapDecision = evaluateFirewallPolicy(decodedSwap, policy, '0');
     assert.equal(swapDecision.outcome, 'APPROVED_FOR_MPC_SIGN');
+  });
+
+  it('Preset 07 (attack-btc-hijack) carries bip143Input and default policy targets mpc-firewall-council.sputnikv2.testnet', () => {
+    const prevDao = process.env.TREZU_DAO_ACCOUNT;
+    delete process.env.TREZU_DAO_ACCOUNT;
+    try {
+      const policy = getDefaultFirewallPolicy();
+      assert.equal(policy.daoAccount, 'mpc-firewall-council.sputnikv2.testnet');
+
+      const presets = buildPresetScenarios();
+      const btcPreset = presets.find((p) => p.id === 'attack-btc-hijack');
+      assert.ok(btcPreset, 'Preset 07 attack-btc-hijack should exist');
+      assert.ok(btcPreset.bip143Input, 'Preset 07 should carry bip143Input context');
+
+      const decoded = decodeUnsignedBitcoinTx(btcPreset.rawUnsignedHex, btcPreset.bip143Input);
+      assert.equal(decoded.sighashAlgorithm, 'bip143');
+      assert.equal(decoded.bip143InputIndex, 0);
+    } finally {
+      if (prevDao !== undefined) process.env.TREZU_DAO_ACCOUNT = prevDao;
+    }
   });
 });
 

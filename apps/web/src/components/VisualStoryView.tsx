@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { FirewallEvaluationRecord, FirewallPolicy } from '@mpc-firewall/core';
 import type { ScenarioPresetView } from '@/components/TxWorkbench';
+import { LiveTestnetExecutePanel } from '@/components/LiveTestnetExecutePanel';
 import {
   InteractiveXRayStage,
   type ScenarioStoryMeta
@@ -765,6 +766,17 @@ export function VisualStoryView({
             />
           </span>
         </button>
+
+        {record && (
+          <div className="pt-2">
+            <LiveTestnetExecutePanel
+              record={record}
+              presetId={activePreset?.id}
+              bip143Input={activePreset?.bip143Input}
+              compact
+            />
+          </div>
+        )}
 
         {showProofDrawer && record && (
           <div className="space-y-4 border-t border-[#E2E8F0] bg-[#F8FAFC] p-7 text-xs">

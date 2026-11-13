@@ -17,6 +17,11 @@ export interface FirewallScenarioPreset {
   agentIntent: string;
   description: string;
   rawUnsignedHex: string;
+  bip143Input?: {
+    inputIndex: number;
+    prevoutValueSats: string;
+    scriptCodeHex: string;
+  };
 }
 
 export function getDefaultFirewallPolicy(): FirewallPolicy {
@@ -43,7 +48,7 @@ export function getDefaultFirewallPolicy(): FirewallPolicy {
     maxDailyBtcSats: '500000',
     allowedBtcOutputScripts: [APPROVED_BTC_P2WPKH_SCRIPT],
     requireTeeRiskCheck: true,
-    daoAccount: process.env.TREZU_DAO_ACCOUNT || 'mpc-firewall-council.sputnik-dao.near'
+    daoAccount: process.env.TREZU_DAO_ACCOUNT || 'mpc-firewall-council.sputnikv2.testnet'
   };
 }
 
@@ -200,7 +205,12 @@ export function buildPresetScenarios(): FirewallScenarioPreset[] {
       chainKind: 'bitcoin',
       agentIntent: 'Consolidate 50,000 sats to treasury change address.',
       description: 'Raw unsigned Bitcoin transaction redirects 250,000 sats to an unapproved P2WPKH script.',
-      rawUnsignedHex: btcDrainTx
+      rawUnsignedHex: btcDrainTx,
+      bip143Input: {
+        inputIndex: 0,
+        prevoutValueSats: '300000',
+        scriptCodeHex: APPROVED_BTC_P2WPKH_SCRIPT
+      }
     }
   ];
 }

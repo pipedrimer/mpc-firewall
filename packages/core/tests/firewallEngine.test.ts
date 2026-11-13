@@ -32,7 +32,7 @@ const basePolicy: FirewallPolicy = {
   maxBtcOutputSats: '100000',
   allowedBtcOutputScripts: ['0014' + '11'.repeat(20)],
   requireTeeRiskCheck: true,
-  daoAccount: 'mpc-firewall-council.sputnik-dao.near'
+  daoAccount: 'mpc-firewall-council.sputnikv2.testnet'
 };
 
 describe('policy/firewallEngine (Zero-Blind-Signing Enforcement)', () => {

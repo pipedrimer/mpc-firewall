@@ -59,7 +59,7 @@ async function runWithServer(port, extraEnv, fn) {
 
 async function main() {
   // Suite 1: Standard Judge / Local Demo Mode (deterministic local enclave)
-  await runWithServer(3199, { MPC_FIREWALL_ADMIN_TOKEN: '', REQUIRE_ADMIN_AUTH: 'false', STRICT_LIVE_TEE: 'false', NEARAI_API_KEY: '' }, async (baseUrl, health) => {
+  await runWithServer(3199, { MPC_FIREWALL_ADMIN_TOKEN: '', REQUIRE_ADMIN_AUTH: 'false', STRICT_LIVE_TEE: 'false', NEARAI_API_KEY: '', NEAR_TESTNET_RELAY_PRIVATE_KEY: '' }, async (baseUrl, health) => {
     assert.equal(health.data.service, 'mpc-firewall');
     assert.equal(health.data.status, 'ok');
     assert.equal(health.data.adminAuthEnabled, false);
@@ -146,6 +146,30 @@ async function main() {
     const daoJson = await daoRes.json();
     assert.equal(daoJson.data.record.decision.outcome, 'ESCALATE_TO_DAO');
     assert.equal(daoJson.data.record.daoProposalPayload.methodName, 'add_proposal');
+    assert.equal(daoJson.data.record.daoProposalPayload.contractId, 'mpc-firewall-council.sputnikv2.testnet');
+
+    // 5. Bitcoin BIP-143 Preset 07 -> BLOCKED with bip143 sighash
+    const btcRes = await fetch(`${baseUrl}/api/inspect`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chainKind: presets[6].chainKind,
+        rawUnsignedHex: presets[6].rawUnsignedHex,
+        agentIntent: presets[6].agentIntent,
+        bip143Input: presets[6].bip143Input
+      })
+    });
+    const btcJson = await btcRes.json();
+    assert.equal(btcJson.data.record.decision.outcome, 'BLOCKED');
+    assert.equal(btcJson.data.record.decoded.sighashAlgorithm, 'bip143');
+
+    // 6. /api/near/execute fails cleanly with 503 when relay key is absent in CI
+    const execUnconfigured = await fetch(`${baseUrl}/api/near/execute`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'dao_add_proposal', proposalDescription: 'CI test proposal check' })
+    });
+    assert.equal(execUnconfigured.status, 503);
   });
 
   // Suite 2: Hardened Production Mode (Admin Auth + Fail-Closed STRICT_LIVE_TEE)
