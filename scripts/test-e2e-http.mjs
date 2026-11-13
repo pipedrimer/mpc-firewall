@@ -58,8 +58,8 @@ async function runWithServer(port, extraEnv, fn) {
 }
 
 async function main() {
-  // Suite 1: Standard Judge / Local Demo Mode
-  await runWithServer(3199, { MPC_FIREWALL_ADMIN_TOKEN: '', REQUIRE_ADMIN_AUTH: 'false', STRICT_LIVE_TEE: 'false' }, async (baseUrl, health) => {
+  // Suite 1: Standard Judge / Local Demo Mode (deterministic local enclave)
+  await runWithServer(3199, { MPC_FIREWALL_ADMIN_TOKEN: '', REQUIRE_ADMIN_AUTH: 'false', STRICT_LIVE_TEE: 'false', NEARAI_API_KEY: '' }, async (baseUrl, health) => {
     assert.equal(health.data.service, 'mpc-firewall');
     assert.equal(health.data.status, 'ok');
     assert.equal(health.data.adminAuthEnabled, false);

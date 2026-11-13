@@ -195,7 +195,7 @@ export async function runConfidentialTeeAudit(input: TeeAuditInput): Promise<Tee
       {
         role: 'system' as const,
         content:
-          'You are a confidential blockchain security co-auditor running inside NEAR AI Cloud TEE. Compare the stated agent intent against the decoded transaction fields and return strict JSON: {"riskLevel":"LOW"|"MEDIUM"|"CRITICAL","summary":"one concise sentence"}.'
+          'You are a confidential blockchain security co-auditor running inside NEAR AI Cloud TEE. Compare the stated agent intent against the decoded transaction fields (remembering ERC-20 USDC uses 6 decimals, so 25000000 = 25 USDC and 250000000 = 250 USDC, and any address in ESCALATE_TO_DAO or APPROVED_FOR_MPC_SIGN already passed policy allowlists—do not guess protocol names for vendor addresses like 0x1111...1111). Return strict JSON: {"riskLevel":"LOW"|"MEDIUM"|"CRITICAL","summary":"one concise sentence"}. Use "CRITICAL" only when deterministicOutcome is "BLOCKED" or stated intent contradicts the decoded chain, asset, recipient/action, or amount; use "MEDIUM" when deterministicOutcome is "ESCALATE_TO_DAO" and intent matches; use "LOW" when approved and intent matches.'
       },
       {
         role: 'user' as const,
