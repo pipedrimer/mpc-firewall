@@ -66,7 +66,7 @@ flowchart LR
    pnpm test
    pnpm build
    ```
-   **See:** All TypeScript packages (`@mpc-firewall/core`, `@mpc-firewall/web`) compile cleanly and all 28 tests across 5 suites pass (`btcDecoder.test.ts`, `evmDecoder.test.ts`, `firewallEngine.test.ts`, `firewallService.test.ts`, `hardening.test.ts`).
+   **See:** All TypeScript packages (`@mpc-firewall/core`, `@mpc-firewall/web`) compile cleanly and all 29 tests across 5 suites pass (`btcDecoder.test.ts`, `evmDecoder.test.ts`, `firewallEngine.test.ts`, `firewallService.test.ts`, `hardening.test.ts`).
 
 ### Step B: Run Deterministic CLI Judge Suite & HTTP E2E Suite
 2. **Do:**
@@ -117,6 +117,6 @@ When deploying beyond local evaluation, set these flags in `.env`:
 - `apps/web/` — Next.js App Router API routes (including `POST /api/near/execute` for live Testnet `verify_and_sign_evm`, `verify_and_sign_btc_bip143`, and SputnikDAO `add_proposal` execution) & interactive Security Operations Console (uses `ethers` for EIP-1559/ABI encoding, `lucide-react`, and `@nearai/inference-sdk`).
 - `.github/workflows/ci.yml` — Automated Ubuntu CI running `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm verify:judge`, `pnpm test:e2e`, `cargo test --locked`, and `cargo build --target wasm32-unknown-unknown --release`.
 - `scripts/judge-demo.mjs` — CLI verification script.
-- `scripts/validate-submission.mjs` — Validates `submission-payload.json` against `HACKATHON.md`.
-- `SUBMISSION_CHECKLIST.md`, `submission-template.json`, `X_DEMO_POST_DRAFT.md` — Human-reviewed submission packaging.
+- `scripts/test-e2e-http.mjs` — End-to-end HTTP API & policy persistence test suite.
+- `docs/presentation/MpcFirewall-Normie-Demo-v3.pptx` — Walkthrough presentation deck.
 - **Libraries & AI Tooling Disclosure:** Built from scratch during this hackathon using `near-sdk`, `ethers`, `next`, `zod`, `@nearai/inference-sdk`, and AI coding assistance (for scaffolding, test generation, interactive 3D/SVG story UI components, and security audit hardening).
