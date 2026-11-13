@@ -1,0 +1,13 @@
+# Netlify Monorepo Configuration for MpcFirewall Next.js UI
+[build]
+  base = "."
+  command = "pnpm run build"
+  publish = "apps/web/.next"
+
+[build.environment]
+  NODE_VERSION = "20"
+  PNPM_FLAGS = "--shamefully-hoist"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
