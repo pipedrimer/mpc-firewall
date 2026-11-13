@@ -13,7 +13,7 @@ Audit conducted against live deployment (`https://mpc-firewall.netlify.app`), NE
 | **ISSUE-03** | **HIGH** | Local TEE co-audit (`nearAi.ts`) never inspects `agentIntent` for semantic mismatches | **FIXED (Verified locally & on Netlify)** |
 | **ISSUE-04** | **HIGH** | Bitcoin path lacks cumulative daily satoshi cap (`max_daily_btc_sats`) & strict trailing-byte / BIP-143 scope | **FIXED (TS verified locally; Rust CI added)** |
 | **ISSUE-05** | **HIGH** | Missing `LICENSE`, stale `README.md` test count (`18` vs `24`), fabricated `$142,500 Saved` UI claims, & track dilution | **FIXED (Verified locally & on Netlify)** |
-| **ISSUE-06** | **CRITICAL (External Action)** | Rust contract not built to `.wasm` or deployed on NEAR Testnet (`mpc-firewall.testnet` doesn't exist) & `NEARAI_API_KEY` unset | **PARTIAL (CI added; needs user wallet deploy & Netlify env keys)** |
+| **ISSUE-06** | **CRITICAL (External Action)** | Rust contract not built to `.wasm` or deployed on NEAR Testnet (`mpc-firewall.testnet` doesn't exist); `NEARAI_API_KEY` | **PARTIAL (`NEARAI_API_KEY` LIVE & CI added; Testnet `.wasm` deploy requires user wallet)** |
 
 ---
 

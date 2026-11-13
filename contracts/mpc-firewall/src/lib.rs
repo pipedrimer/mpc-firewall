@@ -1100,7 +1100,7 @@ mod tests {
         let mut fw = setup_firewall();
         let valid_script = "00141111111111111111111111111111111111111111";
         for i in 0..6 {
-            let raw_hex = build_btc_raw_hex(95_000, valid_script);
+            let raw_hex = build_btc_raw_hex(95_000 + i as u64, valid_script);
             fw.verify_and_sign_btc(raw_hex, format!("btc-cap-{i}"));
         }
     }

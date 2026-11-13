@@ -44,4 +44,12 @@ jobs:
       - name: Run NEAR contract unit tests
         run: cargo test --locked
       - name: Compile contract Wasm target
+        env:
+          RUSTFLAGS: "-C link-arg=-s -C target-cpu=mvp"
         run: cargo build --target wasm32-unknown-unknown --release
+      - name: Upload compiled Wasm artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mpc-firewall-wasm
+          path: contracts/mpc-firewall/target/wasm32-unknown-unknown/release/mpc_firewall.wasm
+          if-no-files-found: error
