@@ -58,15 +58,9 @@ export function HeaderStatusBar({
             <span className="absolute -right-1 -top-1 flex h-2 w-2 rounded-xs bg-[#05DF72]" />
           </div>
 
-          <div className="flex items-center gap-3">
-            <span className="font-display text-base sm:text-lg font-bold tracking-[-0.03em] text-black">
-              MpcFirewall
-            </span>
-            <span className="hidden items-center gap-1.5 border-l border-black/15 pl-3 font-mono text-[11px] font-medium text-[#525B6C] lg:inline-flex">
-              <span className="h-1.5 w-1.5 rounded-xs bg-[#00C758]" />
-              {health?.mpcSignerContractId ?? 'v1.signer-prod.testnet'}
-            </span>
-          </div>
+          <span className="font-display text-base sm:text-lg font-bold tracking-[-0.03em] text-black">
+            MpcFirewall
+          </span>
         </div>
 
         {/* Center on md+ / Full-width 2nd row on mobile: Studio vs. Protocol Mode Switcher */}

@@ -12,7 +12,6 @@ import {
 import {
   ArrowRight,
   ArrowUpRight,
-  BookOpen,
   ChevronDown,
   Code2,
   Cpu,
@@ -248,53 +247,8 @@ export function VisualStoryView({
           BAND 1: SWISS HARDWARE HERO + LIVE 3D TRANSACTION X-RAY
          ===================================================================== */}
       <section className="bg-white">
-        <div className="mx-auto max-w-[1365px] px-4 pt-7 pb-16 sm:px-8 lg:pt-10 lg:pb-24">
-          {/* Top Structural Telemetry Ribbon (Replaces Pill Soup) */}
-          <div className="mb-10 flex flex-wrap items-center justify-between gap-3 border-b border-black/15 pb-3 font-mono text-[11px] text-[#525B6C]">
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
-              <span className="inline-flex items-center gap-2 font-semibold text-black">
-                <span className="h-2 w-2 rounded-xs bg-[#00C758]" />
-                NEAR TESTNET // DEPLOYED
-              </span>
-              <a
-                href="https://testnet.nearblocks.io/address/mpc-firewall.testnet"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 hover:text-black"
-              >
-                <span>contract: mpc-firewall.testnet</span>
-                <ArrowUpRight className="h-3 w-3" />
-              </a>
-              <a
-                href="https://testnet.nearblocks.io/txns/9CMZemnkejMCCJHeUXHBtHp4A49T71aLyjoBBQ98ZxVN"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 hover:text-black"
-              >
-                <span>mpc_tx: 9CMZem…8ZxVN</span>
-                <ArrowUpRight className="h-3 w-3" />
-              </a>
-              <a
-                href="https://testnet.nearblocks.io/address/mpc-firewall-council.sputnikv2.testnet"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 hover:text-black"
-              >
-                <span>dao: sputnikv2.testnet</span>
-                <ArrowUpRight className="h-3 w-3" />
-              </a>
-            </div>
-            <Link
-              href="/docs"
-              className="inline-flex items-center gap-1.5 font-semibold text-black hover:text-[#1F3CFF]"
-            >
-              <BookOpen className="h-3.5 w-3.5" />
-              <span>DOCUMENTATION</span>
-              <ArrowRight className="h-3 w-3" />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-12 lg:gap-12">
+        <div className="mx-auto max-w-[1365px] px-4 pt-10 pb-16 sm:px-8 lg:pt-14 lg:pb-24">
+          <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-12">
             {/* Left Column: Stark Architectural Headline + Mechanical NEAR Action Controls */}
             <div className="space-y-7 pt-2 lg:col-span-5">
               <h1 className="font-display text-4xl font-bold tracking-[-0.04em] leading-[0.98] text-black sm:text-5xl xl:text-[58px]">
@@ -310,7 +264,7 @@ export function VisualStoryView({
                 key.
               </p>
 
-              {/* Signature Mechanical NEAR-Style Action Buttons */}
+              {/* Signature Mechanical NEAR-Style Action Control */}
               <div className="flex flex-col items-stretch gap-3 pt-2 sm:flex-row sm:flex-wrap sm:items-center">
                 <button
                   type="button"
@@ -327,36 +281,6 @@ export function VisualStoryView({
                     <ArrowUpRight className="h-4 w-4" />
                   </span>
                 </button>
-
-                <a
-                  href="#scenarios"
-                  className="group inline-flex items-center justify-between gap-3 rounded-[4px] border border-black/25 bg-white px-5 py-3 text-sm font-semibold text-black transition-colors hover:border-black hover:bg-[#F9F9FA]"
-                >
-                  <span>Test 7 Scenarios</span>
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                </a>
-              </div>
-
-              {/* Crisp Minimalist Metric Strip */}
-              <div className="grid grid-cols-3 divide-x divide-black/10 border-t border-black/15 pt-5 font-mono text-xs">
-                <div>
-                  <div className="text-[10px] tracking-wider text-[#525B6C] uppercase">
-                    Rust Engine
-                  </div>
-                  <div className="mt-0.5 font-bold text-black">EIP-1559 + BTC</div>
-                </div>
-                <div className="pl-4">
-                  <div className="text-[10px] tracking-wider text-[#525B6C] uppercase">
-                    Treasury Lanes
-                  </div>
-                  <div className="mt-0.5 font-bold text-black">Auto / Vote / Block</div>
-                </div>
-                <div className="pl-4">
-                  <div className="text-[10px] tracking-wider text-[#525B6C] uppercase">
-                    Blind Signing
-                  </div>
-                  <div className="mt-0.5 font-bold text-[#008138]">0% Allowed</div>
-                </div>
               </div>
             </div>
 
@@ -391,10 +315,7 @@ export function VisualStoryView({
       <section className="border-t border-black/15 bg-[#F9F9FA]">
         <div className="mx-auto max-w-[1365px] px-4 py-20 sm:px-8 lg:py-24">
           <div className="grid grid-cols-1 gap-8 border-b border-black/15 pb-12 lg:grid-cols-12 lg:items-end">
-            <div className="space-y-2 lg:col-span-5">
-              <div className="font-mono text-[11px] font-semibold tracking-wider text-[#525B6C] uppercase">
-                01 // Why It Exists
-              </div>
+            <div className="lg:col-span-5">
               <h2 className="font-display text-3xl font-bold tracking-[-0.035em] leading-[1.04] text-black sm:text-4xl lg:text-[44px]">
                 What is MpcFirewall?
               </h2>
@@ -402,29 +323,23 @@ export function VisualStoryView({
 
             <div className="lg:col-span-7">
               <p className="text-base leading-relaxed text-[#2D3748] sm:text-lg">
-                Standard NEAR Function Call Keys verify <em>who</em> called a contract, then hand a
-                blind 32-byte digest directly to{' '}
+                Standard NEAR Function Call Keys check <em>who</em> called a contract, then send a
+                blind 32-byte digest straight to{' '}
                 <code className="border border-black/10 bg-white px-1.5 py-0.5 font-mono text-sm font-semibold text-black">
                   v1.signer
                 </code>
-                . MpcFirewall sits right in front of MPC nodes inside a deterministic Rust
-                WebAssembly contract—unwrapping EVM calldata, nested multicalls, and Bitcoin outputs
-                before any signature exists.
+                . MpcFirewall unwraps EVM calldata, nested multicalls, and Bitcoin outputs inside a
+                NEAR Rust contract before any signature exists.
               </p>
             </div>
           </div>
 
-          {/* Interactive 7-Scenario Console Ledger (Zero Puffy Card Soup) */}
+          {/* Interactive 7-Scenario Console Ledger */}
           <div id="scenarios" className="mt-14 scroll-mt-24 space-y-6">
             <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-              <div>
-                <div className="font-mono text-[11px] font-semibold tracking-wider text-[#1F3CFF] uppercase">
-                  Interactive Scenario Matrix
-                </div>
-                <h3 className="mt-1 font-display text-2xl font-bold tracking-[-0.03em] text-black sm:text-3xl">
-                  Select a live errand to inspect its bytes.
-                </h3>
-              </div>
+              <h3 className="font-display text-2xl font-bold tracking-[-0.03em] text-black sm:text-3xl">
+                Select a live errand to inspect its bytes.
+              </h3>
 
               <div className="flex flex-wrap border border-black/15 bg-white">
                 {[
@@ -539,15 +454,12 @@ export function VisualStoryView({
       <section className="border-t border-black/15 bg-white">
         <div className="mx-auto max-w-[1365px] px-4 py-20 sm:px-8 lg:py-28">
           <div className="max-w-3xl space-y-3">
-            <div className="font-mono text-[11px] font-semibold tracking-wider text-[#525B6C] uppercase">
-              02 // Protocol Architecture
-            </div>
             <h2 className="font-display text-3xl font-bold tracking-[-0.035em] leading-[1.04] text-black sm:text-4xl lg:text-[48px]">
-              The MpcFirewall Stack
+              How it prevents blind signing
             </h2>
             <p className="text-base leading-relaxed text-[#4A5568] sm:text-lg">
               Deterministic transaction parsing, programmatic treasury routing, and confidential
-              semantic co-auditing before Chain Signatures ever computes a threshold share.
+              semantic co-auditing before Chain Signatures computes a threshold share.
             </p>
           </div>
 
@@ -711,78 +623,27 @@ export function VisualStoryView({
       </section>
 
       {/* =====================================================================
-          BAND 4: MATTE BLACK EDITORIAL QUOTE STATEMENT (NEAR.ORG CADENCE)
-         ===================================================================== */}
-      <section className="bg-black text-white">
-        <div className="mx-auto max-w-[1040px] px-4 py-24 text-center sm:px-8 lg:py-32">
-          <div className="font-mono text-[11px] font-bold tracking-[0.2em] text-[#05DF72] uppercase">
-            Chain Signatures Security Principle
-          </div>
-
-          <blockquote className="mt-6 font-display text-3xl font-bold tracking-[-0.035em] leading-[1.12] text-white sm:text-4xl lg:text-[48px]">
-            &ldquo;The agentic economy can only take shape if every signature is verified on-chain
-            before it leaves NEAR.&rdquo;
-          </blockquote>
-
-          <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-white/65">
-            No custodial handoffs, no human click-fatigue popups—deterministic verification between
-            autonomous agents and threshold MPC nodes.
-          </p>
-
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-            <Link
-              href="/docs"
-              className="group inline-flex items-center gap-3 rounded-[4px] bg-[#05DF72] px-6 py-3.5 text-sm font-bold text-black transition-colors hover:bg-[#00C758]"
-            >
-              <span>Read Documentation</span>
-              <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-            </Link>
-            <a
-              href="#live-proofs"
-              className="inline-flex items-center gap-2 rounded-[4px] border border-white/30 px-6 py-3.5 text-sm font-semibold text-white transition-colors hover:border-white hover:bg-white/10"
-            >
-              <span>Inspect Live Proofs</span>
-              <ArrowRight className="h-4 w-4" />
-            </a>
-          </div>
-        </div>
-      </section>
-
-      {/* =====================================================================
           BAND 5: FLUSH 1PX RULED ECOSYSTEM MATRIX (WARM CREAM CANVAS)
          ===================================================================== */}
       <section className="border-y border-black/15 bg-[#F2F1E9]">
-        <div className="mx-auto max-w-[1365px] px-4 py-20 sm:px-8 lg:py-24">
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div className="max-w-2xl space-y-2">
-              <div className="font-mono text-[11px] font-semibold tracking-wider text-[#525B6C] uppercase">
-                03 // Cross-Chain Coverage
-              </div>
-              <h2 className="font-display text-3xl font-bold tracking-[-0.035em] text-black sm:text-4xl">
-                Integrated across chains, standards, and NEAR infrastructure.
-              </h2>
-            </div>
-            <p className="max-w-sm text-sm text-[#4A5568]">
-              One policy layer protecting outbound execution wherever Chain Signatures signs.
-            </p>
-          </div>
+        <div className="mx-auto max-w-[1365px] px-4 py-16 sm:px-8 lg:py-20">
+          <h2 className="max-w-2xl font-display text-3xl font-bold tracking-[-0.035em] text-black sm:text-4xl">
+            Supported chains and NEAR primitives
+          </h2>
 
-          {/* Flush gap-px hairline grid (zero floating rounded box bloat) */}
-          <div className="mt-12 grid grid-cols-1 gap-px border border-black/15 bg-black/15 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Flush gap-px hairline grid */}
+          <div className="mt-10 grid grid-cols-1 gap-px border border-black/15 bg-black/15 sm:grid-cols-2 lg:grid-cols-4">
             {ECOSYSTEM_INTEGRATIONS.map((item) => (
               <div
                 key={item.name}
-                className="flex flex-col justify-between bg-white p-6 transition-colors hover:bg-[#F9F9FA] sm:p-7"
+                className="flex flex-col justify-between bg-white p-6"
               >
                 <div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono text-[10px] font-bold tracking-wider text-[#1F3CFF] uppercase">
-                      {item.tag}
-                    </span>
-                    <span className="h-2 w-2 rounded-xs bg-[#00C758]" />
-                  </div>
-                  <h3 className="mt-3 font-display text-xl font-bold text-black">{item.name}</h3>
-                  <p className="mt-2.5 text-xs leading-relaxed text-[#4A5568]">{item.summary}</p>
+                  <span className="font-mono text-[10px] font-bold tracking-wider text-[#1F3CFF] uppercase">
+                    {item.tag}
+                  </span>
+                  <h3 className="mt-2 font-display text-lg font-bold text-black">{item.name}</h3>
+                  <p className="mt-2 text-xs leading-relaxed text-[#4A5568]">{item.summary}</p>
                 </div>
               </div>
             ))}
@@ -794,31 +655,19 @@ export function VisualStoryView({
           BAND 6: 3-STEP INTEGRATION MATRIX + CRYPTOGRAPHIC PROOF DRAWER
          ===================================================================== */}
       <section id="live-proofs" className="scroll-mt-20 bg-white">
-        <div className="mx-auto max-w-[1365px] space-y-12 px-4 py-20 sm:px-8 lg:py-24">
+        <div className="mx-auto max-w-[1365px] space-y-12 px-4 py-16 sm:px-8 lg:py-20">
           <div className="flex flex-col gap-6 border-b border-black/15 pb-8 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-2xl space-y-2">
-              <div className="font-mono text-[11px] font-semibold tracking-wider text-[#1F3CFF] uppercase">
-                04 // Zero Workflow Disruption
-              </div>
-              <h2 className="font-display text-3xl font-bold tracking-[-0.035em] text-black sm:text-4xl">
-                Drop into any NEAR agent flow in 3 steps.
-              </h2>
-            </div>
+            <h2 className="max-w-2xl font-display text-3xl font-bold tracking-[-0.035em] text-black sm:text-4xl">
+              Drop into any NEAR agent flow in 3 steps
+            </h2>
 
-            <div className="flex items-center gap-4">
-              <img
-                src="/illustrations/multichain-passport.jpg"
-                alt="One protective shield over Bitcoin, Ethereum, and NEAR coins"
-                className="hidden h-16 w-28 border border-black/15 bg-[#F9F9FA] object-contain p-1 sm:block"
-              />
-              <Link
-                href="/docs/quickstart"
-                className="group inline-flex items-center gap-3 rounded-[4px] bg-black px-5 py-3 text-xs font-bold text-white transition-colors hover:bg-[#1F3CFF]"
-              >
-                <span>Open Integration Guide</span>
-                <ArrowUpRight className="h-3.5 w-3.5 text-[#05DF72] group-hover:text-white" />
-              </Link>
-            </div>
+            <Link
+              href="/docs/quickstart"
+              className="group inline-flex items-center gap-3 self-start rounded-[4px] bg-black px-5 py-3 text-xs font-bold text-white transition-colors hover:bg-[#1F3CFF] lg:self-auto"
+            >
+              <span>Open Integration Guide</span>
+              <ArrowUpRight className="h-3.5 w-3.5 text-[#05DF72] group-hover:text-white" />
+            </Link>
           </div>
 
           {/* Flush 3-Column Hairline Grid */}
@@ -885,6 +734,80 @@ export function VisualStoryView({
                 <ArrowRight className="h-3.5 w-3.5" />
               </div>
             </Link>
+          </div>
+
+          {/* Live On NEAR Testnet: Labeled Deployed Contracts & Proof Links */}
+          <div id="deployed-contracts" className="scroll-mt-24 space-y-3">
+            <div className="flex items-center font-mono text-[11px] font-bold tracking-wider text-black uppercase">
+              <span className="inline-flex items-center gap-2">
+                <span className="h-2 w-2 rounded-xs bg-[#00C758]" />
+                LIVE ON NEAR TESTNET
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 gap-px border border-black/15 bg-black/15 md:grid-cols-3">
+              <a
+                href="https://testnet.nearblocks.io/address/mpc-firewall.testnet"
+                target="_blank"
+                rel="noreferrer"
+                className="group flex flex-col justify-between bg-[#F9F9FA] p-5 transition-colors hover:bg-white"
+              >
+                <div>
+                  <div className="flex items-center justify-between font-mono text-[10px] font-bold tracking-wider text-[#525B6C] uppercase">
+                    <span>Firewall Policy Contract</span>
+                    <ArrowUpRight className="h-3.5 w-3.5 text-black transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                  </div>
+                  <div className="mt-2 font-mono text-sm font-bold text-black">
+                    mpc-firewall.testnet
+                  </div>
+                  <p className="mt-1.5 text-xs text-[#4A5568]">
+                    Rust WASM verifier that inspects raw EVM &amp; Bitcoin payloads before calling
+                    MPC.
+                  </p>
+                </div>
+              </a>
+
+              <a
+                href="https://testnet.nearblocks.io/txns/9CMZemnkejMCCJHeUXHBtHp4A49T71aLyjoBBQ98ZxVN"
+                target="_blank"
+                rel="noreferrer"
+                className="group flex flex-col justify-between bg-[#F9F9FA] p-5 transition-colors hover:bg-white"
+              >
+                <div>
+                  <div className="flex items-center justify-between font-mono text-[10px] font-bold tracking-wider text-[#008138] uppercase">
+                    <span>Verified MPC Signature Proof TX</span>
+                    <ArrowUpRight className="h-3.5 w-3.5 text-black transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                  </div>
+                  <div className="mt-2 font-mono text-sm font-bold text-black">
+                    9CMZem…8ZxVN
+                  </div>
+                  <p className="mt-1.5 text-xs text-[#4A5568]">
+                    Live cross-contract signature receipt issued through{' '}
+                    <code>v1.signer-prod.testnet</code>.
+                  </p>
+                </div>
+              </a>
+
+              <a
+                href="https://testnet.nearblocks.io/address/mpc-firewall-council.sputnikv2.testnet"
+                target="_blank"
+                rel="noreferrer"
+                className="group flex flex-col justify-between bg-[#F9F9FA] p-5 transition-colors hover:bg-white"
+              >
+                <div>
+                  <div className="flex items-center justify-between font-mono text-[10px] font-bold tracking-wider text-[#B45309] uppercase">
+                    <span>Escalation Council DAO</span>
+                    <ArrowUpRight className="h-3.5 w-3.5 text-black transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                  </div>
+                  <div className="mt-2 font-mono text-sm font-bold text-black">
+                    mpc-firewall-council.sputnikv2.testnet
+                  </div>
+                  <p className="mt-1.5 text-xs text-[#4A5568]">
+                    Human governance multisig receiving mid-sized ($100–$500) escalations.
+                  </p>
+                </div>
+              </a>
+            </div>
           </div>
 
           {/* Crisp Hardware Proof Drawer & Live Execution Panel */}
@@ -1019,13 +942,8 @@ export function VisualStoryView({
                 </span>
               </div>
               <p className="max-w-sm text-sm leading-relaxed text-white/65">
-                Deterministic policy firewall for NEAR Chain Signatures agents—decoding EVM and
-                Bitcoin bytes on-chain before threshold signatures leave NEAR.
+                Pre-signing EVM &amp; Bitcoin policy verification for NEAR Chain Signatures agents.
               </p>
-              <div className="inline-flex items-center gap-2 border border-white/15 bg-white/5 px-3 py-1.5 font-mono text-[11px] text-[#05DF72]">
-                <span className="h-1.5 w-1.5 rounded-xs bg-[#05DF72]" />
-                <span>LIVE ON NEAR TESTNET</span>
-              </div>
             </div>
 
             <div className="space-y-3 md:col-span-2">
@@ -1129,11 +1047,6 @@ export function VisualStoryView({
                 </li>
               </ul>
             </div>
-          </div>
-
-          <div className="mt-12 flex flex-col items-start justify-between gap-4 border-t border-white/15 pt-8 font-mono text-[11px] text-white/50 sm:flex-row sm:items-center">
-            <span>MPCFIREWALL // NON-CUSTODIAL PRE-SIGNING POLICY GATE</span>
-            <span>NEAR CHAIN SIGNATURES &bull; NEAR AI CLOUD TEE &bull; SPUTNIKDAO V2</span>
           </div>
         </div>
       </footer>

@@ -194,7 +194,6 @@ export function InteractiveXRayStage({
   const stageRef = useRef<HTMLDivElement | null>(null);
   const splitViewportRef = useRef<HTMLDivElement | null>(null);
   const tiltChassisRef = useRef<HTMLDivElement | null>(null);
-  const floatingBadgeRef = useRef<HTMLDivElement | null>(null);
   const glareRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -285,12 +284,6 @@ export function InteractiveXRayStage({
         const rotY = p.currentX * 6.0;
         const rotX = -p.currentY * 4.8;
         tiltChassisRef.current.style.transform = `rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg)`;
-      }
-
-      if (floatingBadgeRef.current) {
-        const shiftX = p.currentX * 8;
-        const shiftY = p.currentY * 6;
-        floatingBadgeRef.current.style.transform = `translate3d(${shiftX.toFixed(1)}px, ${shiftY.toFixed(1)}px, 28px)`;
       }
 
       if (glareRef.current) {
@@ -604,32 +597,6 @@ export function InteractiveXRayStage({
         className="relative transition-shadow duration-300"
         style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
       >
-        {/* Architectural Telemetry Header Strip (Flush Hardware Corner) */}
-        <div
-          ref={floatingBadgeRef}
-          className="mb-2 flex items-center justify-between border border-black/15 bg-[#F9F9FA] px-3 py-1.5 font-mono text-[11px] font-semibold text-black"
-        >
-          <span className="inline-flex items-center gap-2">
-            <span
-              className={`h-2 w-2 rounded-xs ${
-                isBlocked ? 'bg-[#E11D48]' : isEscalated ? 'bg-[#D97706]' : 'bg-[#00C758]'
-              }`}
-            />
-            <span>MPC-XRAY // HARDWARE ENGINE</span>
-          </span>
-          <span
-            className={`font-bold ${
-              isBlocked ? 'text-[#E11D48]' : isEscalated ? 'text-[#D97706]' : 'text-[#008138]'
-            }`}
-          >
-            {isTamperedSimulation
-              ? 'PROMPT-INJECTION DETECTED'
-              : daoApprovedByHuman
-                ? 'CFO CO-SIGNED • APPROVED'
-                : meta.dollarBadge.toUpperCase()}
-          </span>
-        </div>
-
         {/* Inner Clipped Card Surface */}
         <div
           className={`relative overflow-hidden rounded-lg border bg-white shadow-[0_20px_50px_-28px_rgba(11,15,23,0.22)] transition-colors duration-300 ${
