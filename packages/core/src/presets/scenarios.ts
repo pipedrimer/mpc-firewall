@@ -40,6 +40,7 @@ export function getDefaultFirewallPolicy(): FirewallPolicy {
     allowSetApprovalForAll: false,
     allowUnknownSelectors: false,
     maxBtcOutputSats: '100000',
+    maxDailyBtcSats: '500000',
     allowedBtcOutputScripts: [APPROVED_BTC_P2WPKH_SCRIPT],
     requireTeeRiskCheck: true,
     daoAccount: process.env.TREZU_DAO_ACCOUNT || 'mpc-firewall-council.sputnik-dao.near'

@@ -280,11 +280,16 @@ function evaluateEvm(
   };
 }
 
-function evaluateBitcoin(tx: DecodedBitcoinTx, policy: FirewallPolicy): FirewallDecision {
+function evaluateBitcoin(
+  tx: DecodedBitcoinTx,
+  policy: FirewallPolicy,
+  dailyBtcSatsSpent: string
+): FirewallDecision {
   const codes: FirewallViolationCode[] = [];
   const reasons: string[] = [];
 
   const maxSats = BigInt(policy.maxBtcOutputSats);
+  const maxDailySats = BigInt(policy.maxDailyBtcSats || policy.maxBtcOutputSats);
   const allowedScripts = normalizeLowerSet(policy.allowedBtcOutputScripts);
   const totalSats = BigInt(tx.totalOutputSats);
 
@@ -294,6 +299,15 @@ function evaluateBitcoin(tx: DecodedBitcoinTx, policy: FirewallPolicy): Firewall
       reasons,
       'ERR_BTC_OUTPUT_EXCEEDS_CAP',
       `Total Bitcoin output (${totalSats.toString()} sats) exceeds maxBtcOutputSats (${maxSats.toString()}).`
+    );
+  }
+
+  if (BigInt(dailyBtcSatsSpent) + totalSats > maxDailySats) {
+    addViolation(
+      codes,
+      reasons,
+      'ERR_DAILY_BTC_CAP_EXCEEDED',
+      `Daily Bitcoin output (${(BigInt(dailyBtcSatsSpent) + totalSats).toString()} sats) exceeds maxDailyBtcSats (${maxDailySats.toString()}).`
     );
   }
 
@@ -325,11 +339,12 @@ export function evaluateFirewallPolicy(
   decoded: DecodedForeignTx,
   policy: FirewallPolicy,
   dailyTokenSpentUnits = '0',
-  dailyNativeSpentWei = '0'
+  dailyNativeSpentWei = '0',
+  dailyBtcSatsSpent = '0'
 ): FirewallDecision {
   if (decoded.kind === 'evm') {
     return evaluateEvm(decoded, policy, dailyTokenSpentUnits, dailyNativeSpentWei);
   }
-  return evaluateBitcoin(decoded, policy);
+  return evaluateBitcoin(decoded, policy, dailyBtcSatsSpent);
 }
 

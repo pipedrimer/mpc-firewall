@@ -70,10 +70,12 @@ export async function previewIntentsQuote(params: {
   const baseUrl = process.env.NEAR_INTENTS_BASE_URL || 'https://1click.chaindefuser.com';
   const apiKey = process.env.NEAR_INTENTS_API_KEY?.trim();
   const confidentiality = params.confidentiality ?? 'advanced';
+  const depositType = apiKey && confidentiality === 'advanced' ? 'CONFIDENTIAL_INTENTS' : 'INTENTS';
 
   const body: Record<string, unknown> = {
     dry: true,
     swapType: 'EXACT_INPUT',
+    depositType,
     originAsset: params.originAsset,
     destinationAsset: params.destinationAsset,
     amount: params.amount,
@@ -81,10 +83,11 @@ export async function previewIntentsQuote(params: {
     recipientType: 'INTENTS',
     refundTo: params.refundTo,
     refundType: 'INTENTS',
-    slippageTolerance: 100
+    slippageTolerance: 100,
+    deadline: new Date(Date.now() + 60 * 60 * 1000).toISOString()
   };
 
-  if (confidentiality !== 'none') {
+  if (confidentiality !== 'none' && apiKey) {
     body.confidentiality = confidentiality;
   }
 
@@ -110,7 +113,7 @@ export async function previewIntentsQuote(params: {
       originAsset: params.originAsset,
       destinationAsset: params.destinationAsset,
       amount: params.amount,
-      confidentiality,
+      confidentiality: apiKey ? confidentiality : 'basic',
       amountOut: String(quoteObj.amountOut ?? ''),
       depositAddress: quoteObj.depositAddress ? String(quoteObj.depositAddress) : undefined,
       raw: json

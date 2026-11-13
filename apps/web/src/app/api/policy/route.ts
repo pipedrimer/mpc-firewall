@@ -15,6 +15,7 @@ const policyPatchSchema = z.object({
   allowSetApprovalForAll: z.boolean().optional(),
   allowUnknownSelectors: z.boolean().optional(),
   maxBtcOutputSats: z.string().regex(/^\d+$/).optional(),
+  maxDailyBtcSats: z.string().regex(/^\d+$/).optional(),
   requireTeeRiskCheck: z.boolean().optional(),
   daoAccount: z.string().min(2).max(64).optional(),
   derivationPath: z.string().min(1).max(128).optional()

@@ -1030,7 +1030,7 @@ export function InteractiveXRayStage({
                       }`}
                     >
                       {isTamperedSimulation
-                        ? '$142,500 Saved'
+                        ? 'Unlimited Drain Prevented'
                         : daoApprovedByHuman
                           ? '$250 Co-Signed ✓'
                           : meta.dollarBadge}
@@ -1083,7 +1083,11 @@ export function InteractiveXRayStage({
                         Unpacked Transaction Anatomy (On-Chain Byte Inspection)
                       </span>
                       <span className="font-mono text-[10px] font-semibold text-[#1F3CFF]">
-                        {record?.teeAudit?.signatureVerified ? 'TEE Attested ✓' : 'Rust Wasm AST'}
+                        {record?.teeAudit?.mode === 'near-ai-live' && record?.teeAudit?.signatureVerified
+                          ? 'NEAR AI TEE ✓'
+                          : record?.teeAudit?.signatureVerified
+                            ? 'Local Enclave Sig'
+                            : 'Rust Wasm AST'}
                       </span>
                     </div>
 

@@ -1,0 +1,48 @@
+name: MpcFirewall CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  typescript-and-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Run core unit & hardening tests
+        run: pnpm test
+      - name: Build packages and Next.js app
+        run: pnpm build
+      - name: Run deterministic judge CLI suite
+        run: pnpm verify:judge
+      - name: Run HTTP API E2E suite
+        run: pnpm test:e2e
+
+  rust-contract:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts/mpc-firewall
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - name: Run NEAR contract unit tests
+        run: cargo test --locked
+      - name: Compile contract Wasm target
+        run: cargo build --target wasm32-unknown-unknown --release
+

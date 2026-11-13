@@ -81,6 +81,7 @@ export interface FirewallPolicy {
   allowSetApprovalForAll: boolean;
   allowUnknownSelectors: boolean;
   maxBtcOutputSats: string;
+  maxDailyBtcSats: string;
   allowedBtcOutputScripts: string[];
   requireTeeRiskCheck: boolean;
   daoAccount: string;
@@ -102,6 +103,7 @@ export type FirewallViolationCode =
   | 'ERR_UNKNOWN_SELECTOR_BLOCKED'
   | 'ERR_NESTED_MULTICALL_VIOLATION'
   | 'ERR_BTC_OUTPUT_EXCEEDS_CAP'
+  | 'ERR_DAILY_BTC_CAP_EXCEEDED'
   | 'ERR_BTC_UNAPPROVED_OUTPUT_SCRIPT'
   | 'ERR_REPLAY_DETECTED'
   | 'ERR_TEE_UNAVAILABLE'

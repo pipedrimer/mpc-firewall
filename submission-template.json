@@ -6,15 +6,13 @@
   "size": "1",
   "tracks": [
     "security",
-    "defi",
     "agents",
-    "privacy",
-    "social"
+    "privacy"
   ],
   "nearAddress": "REPLACE_WITH_MAINNET_NEAR_ACCOUNT",
   "projectUrl": "https://github.com/REPLACE_ORG/mpc-firewall",
   "demoUrl": "https://x.com/REPLACE_HANDLE/status/0000000000000000000",
-  "idea": "MpcFirewall eliminates the 32-byte blind-signing vulnerability in NEAR Chain Signatures (v1.signer). Existing NEAR agent-security tools rely on Function Call Keys, which only inspect NEAR-native calls and are completely blind when an agent passes an opaque 32-byte keccak256 digest to v1.signer to sign Ethereum, Base, Arbitrum, or Bitcoin transactions—allowing a compromised agent to disguise ERC20.approve(drainer, MaxUint256) or nested multicall drains behind a valid Function Call Key. MpcFirewall solves this by owning the MPC derivation path inside a Rust NEAR smart contract (contracts/mpc-firewall): agents must submit raw unsigned EVM EIP-1559/Legacy RLP bytes or raw Bitcoin tx bytes instead of hashes. The contract decodes RLP and ABI calldata recursively on-chain (catching unlimited approvals, setApprovalForAll, disallowed chainIds, and smuggled multicall drains), computes keccak256/sha256d on-chain, enforces autonomous caps, escalates oversized valid txs to Trezu/SputnikDAO multisig proposals, and runs confidential intent-vs-calldata risk checks inside NEAR AI Cloud TEE.",
+  "idea": "MpcFirewall eliminates the 32-byte blind-signing vulnerability in NEAR Chain Signatures (v1.signer). Existing NEAR Function Call Keys only inspect NEAR-native calls and are blind when an AI agent passes an opaque 32-byte keccak256 digest to v1.signer for Ethereum, Base, Arbitrum, or Bitcoin transactions—allowing ERC20.approve(drainer, MaxUint256) or nested multicall drains to slip through. MpcFirewall moves the MPC derivation path inside a Rust NEAR smart contract (contracts/mpc-firewall): agents submit raw unsigned EVM RLP or Bitcoin bytes, the contract decodes calldata recursively on-chain (blocking unlimited approvals, setApprovalForAll, wrong chainIds, and smuggled multicall drains), computes keccak256/sha256d on-chain, enforces autonomous daily caps, escalates oversized txs to Trezu/SputnikDAO proposals, and performs confidential intent-vs-calldata verification via NEAR AI Cloud TEE.",
   "consent": false
 }
 

@@ -102,6 +102,28 @@ export function decodeUnsignedBitcoinTx(rawUnsignedHex: string): DecodedBitcoinT
     });
   }
 
+  if (voutCount === 0) {
+    throw new Error('ERR_INVALID_RAW_TX: Bitcoin tx has no outputs');
+  }
+
+  if (isSegwit) {
+    for (let i = 0; i < inputCount; i++) {
+      const stackCount = readVarInt(buf, state);
+      for (let j = 0; j < stackCount; j++) {
+        const itemLen = readVarInt(buf, state);
+        state.pos += itemLen;
+        if (state.pos > buf.length) {
+          throw new Error('ERR_INVALID_RAW_TX: Bitcoin witness OOB');
+        }
+      }
+    }
+  }
+
+  if (state.pos + 4 !== buf.length) {
+    throw new Error('ERR_INVALID_RAW_TX: Bitcoin locktime/trailing bytes invalid');
+  }
+
+  // Note: prototype hashes serialized unsigned bytes; SegWit broadcast requires per-input BIP-143 preimages.
   const firstHash = crypto.createHash('sha256').update(buf).digest();
   const doubleHash = crypto.createHash('sha256').update(firstHash).digest('hex');
 

@@ -27,6 +27,7 @@ pub trait FirewallCallback {
         tx_id: String,
         token_amount: u128,
         native_wei: u128,
+        btc_sats: u64,
     ) -> bool;
 }
 
@@ -48,6 +49,7 @@ pub struct OnChainPolicy {
     pub allow_set_approval_for_all: bool,
     pub allow_unknown_selectors: bool,
     pub max_btc_output_sats: u64,
+    pub max_daily_btc_sats: u64,
     pub allowed_btc_scripts: Vec<String>,
     pub dao_account: AccountId,
 }
@@ -95,6 +97,7 @@ pub struct MpcFirewall {
     pub current_day_epoch: u64,
     pub daily_token_spent: u128,
     pub daily_native_spent: u128,
+    pub daily_btc_sats_spent: u64,
     pub processed_tx_ids: LookupSet<String>,
     pub processed_payloads: LookupSet<[u8; 32]>,
     pub escalated_txs: LookupMap<String, EscalatedTx>,
@@ -117,6 +120,7 @@ impl MpcFirewall {
             current_day_epoch: env::block_timestamp() / NANOS_PER_DAY,
             daily_token_spent: 0,
             daily_native_spent: 0,
+            daily_btc_sats_spent: 0,
             processed_tx_ids: LookupSet::new(b"p"),
             processed_payloads: LookupSet::new(b"d"),
             escalated_txs: LookupMap::new(b"e"),
@@ -252,7 +256,7 @@ impl MpcFirewall {
             .then(
                 ext_self::ext(env::current_account_id())
                     .with_static_gas(Gas::from_tgas(10))
-                    .on_mpc_sign_complete(tx_id, token_total, native_exposure_wei),
+                    .on_mpc_sign_complete(tx_id, token_total, native_exposure_wei, 0),
             );
 
         InspectionSummary {
@@ -267,10 +271,12 @@ impl MpcFirewall {
     }
 
     /// Zero-trust Bitcoin entrypoint: verifies authorized caller, parses raw outputs,
-    /// enforces satoshi cap & allowed output scripts, then hashes double-SHA256 for v1.signer.
+    /// enforces per-tx & daily satoshi caps + allowed output scripts, then hashes
+    /// double-SHA256 for v1.signer (note: SegWit mainnet broadcast requires BIP-143 sighash preimage).
     #[payable]
     pub fn verify_and_sign_btc(&mut self, raw_unsigned_btc_hex: String, tx_id: String) -> String {
         self.require_authorized_caller();
+        self.roll_day_epoch_if_needed();
         require!(!tx_id.is_empty() && tx_id.len() <= 64, "ERR_INVALID_TX_ID");
         require!(!self.processed_tx_ids.contains(&tx_id), "ERR_REPLAY_DETECTED");
 
@@ -296,6 +302,10 @@ impl MpcFirewall {
             total_sats <= self.policy.max_btc_output_sats,
             "ERR_BTC_OUTPUT_EXCEEDS_CAP"
         );
+        require!(
+            self.daily_btc_sats_spent.saturating_add(total_sats) <= self.policy.max_daily_btc_sats,
+            "ERR_DAILY_BTC_CAP_EXCEEDED"
+        );
 
         let first_hash = env::sha256(&raw_bytes);
         let double_hash = env::sha256(&first_hash);
@@ -305,6 +315,7 @@ impl MpcFirewall {
 
         self.processed_tx_ids.insert(tx_id.clone());
         self.processed_payloads.insert(payload);
+        self.daily_btc_sats_spent = self.daily_btc_sats_spent.saturating_add(total_sats);
 
         let _ = ext_mpc_signer::ext(self.mpc_signer_contract.clone())
             .with_attached_deposit(env::attached_deposit())
@@ -317,7 +328,7 @@ impl MpcFirewall {
             .then(
                 ext_self::ext(env::current_account_id())
                     .with_static_gas(Gas::from_tgas(10))
-                    .on_mpc_sign_complete(tx_id, 0, 0),
+                    .on_mpc_sign_complete(tx_id, 0, 0, total_sats),
             );
 
         format!("0x{}", encode_hex(&payload))
@@ -371,7 +382,7 @@ impl MpcFirewall {
             .then(
                 ext_self::ext(env::current_account_id())
                     .with_static_gas(Gas::from_tgas(10))
-                    .on_mpc_sign_complete(tx_id, token_amt, native_amt),
+                    .on_mpc_sign_complete(tx_id, token_amt, native_amt, 0),
             )
     }
 
@@ -381,11 +392,13 @@ impl MpcFirewall {
         tx_id: String,
         token_amount: u128,
         native_wei: u128,
+        btc_sats: u64,
     ) -> bool {
         let succeeded = matches!(env::promise_result(0), PromiseResult::Successful(_));
         if !succeeded {
             self.daily_token_spent = self.daily_token_spent.saturating_sub(token_amount);
             self.daily_native_spent = self.daily_native_spent.saturating_sub(native_wei);
+            self.daily_btc_sats_spent = self.daily_btc_sats_spent.saturating_sub(btc_sats);
             if let Some(mut item) = self.escalated_txs.get(&tx_id).cloned() {
                 item.status = DispatchStatus::MpcFailedRolledBack;
                 self.escalated_txs.insert(tx_id, item);
@@ -534,6 +547,7 @@ impl MpcFirewall {
             self.current_day_epoch = epoch;
             self.daily_token_spent = 0;
             self.daily_native_spent = 0;
+            self.daily_btc_sats_spent = 0;
         }
     }
 }
@@ -737,10 +751,12 @@ fn decode_abi_bytes_array(args: &[u8], offset_word_pos: usize) -> Vec<Vec<u8>> {
 fn decode_btc_outputs(raw: &[u8]) -> Vec<(u64, Vec<u8>)> {
     require!(raw.len() >= 10, "ERR_INVALID_RAW_TX: btc too short");
     let mut pos = 4;
-    if raw[pos] == 0x00 && raw.get(pos + 1) == Some(&0x01) {
+    let is_segwit = raw[pos] == 0x00 && raw.get(pos + 1) == Some(&0x01);
+    if is_segwit {
         pos += 2;
     }
     let vin_count = read_varint(raw, &mut pos);
+    require!(vin_count > 0, "ERR_INVALID_RAW_TX: btc missing inputs");
     for _ in 0..vin_count {
         pos += 36;
         require!(pos <= raw.len(), "ERR_INVALID_RAW_TX: btc vin OOB");
@@ -749,6 +765,7 @@ fn decode_btc_outputs(raw: &[u8]) -> Vec<(u64, Vec<u8>)> {
         require!(pos <= raw.len(), "ERR_INVALID_RAW_TX: btc scriptSig OOB");
     }
     let vout_count = read_varint(raw, &mut pos);
+    require!(vout_count > 0, "ERR_INVALID_RAW_TX: btc missing outputs");
     let mut outputs = Vec::with_capacity(vout_count as usize);
     for _ in 0..vout_count {
         require!(pos + 8 <= raw.len(), "ERR_INVALID_RAW_TX: btc vout value OOB");
@@ -761,6 +778,17 @@ fn decode_btc_outputs(raw: &[u8]) -> Vec<(u64, Vec<u8>)> {
         outputs.push((value_sats, raw[pos..pos + script_len].to_vec()));
         pos += script_len;
     }
+    if is_segwit {
+        for _ in 0..vin_count {
+            let stack_items = read_varint(raw, &mut pos);
+            for _ in 0..stack_items {
+                let item_len = read_varint(raw, &mut pos) as usize;
+                require!(pos + item_len <= raw.len(), "ERR_INVALID_RAW_TX: btc witness OOB");
+                pos += item_len;
+            }
+        }
+    }
+    require!(pos + 4 == raw.len(), "ERR_INVALID_RAW_TX: btc locktime/trailing byte mismatch");
     outputs
 }
 
@@ -931,6 +959,7 @@ mod tests {
                 allow_set_approval_for_all: false,
                 allow_unknown_selectors: false,
                 max_btc_output_sats: 100_000,
+                max_daily_btc_sats: 500_000,
                 allowed_btc_scripts: vec!["00141111111111111111111111111111111111111111".into()],
                 dao_account: "council.sputnik-dao.near".parse().unwrap(),
             },
@@ -993,16 +1022,27 @@ mod tests {
         fw.verify_and_sign_evm(raw_hex, "tx-permit-evil".into());
     }
 
+    fn build_btc_raw_hex(sats: u64, script_hex: &str) -> String {
+        let mut btc = vec![1, 0, 0, 0, 1]; // version 1 + 1 input
+        btc.extend_from_slice(&[0x11u8; 32]); // dummy prevout txid
+        btc.extend_from_slice(&0u32.to_le_bytes()); // vout 0
+        btc.push(0); // empty scriptSig
+        btc.extend_from_slice(&0xffffffffu32.to_le_bytes()); // sequence
+        btc.push(1); // 1 output
+        btc.extend_from_slice(&sats.to_le_bytes());
+        let script = decode_hex(script_hex);
+        btc.push(script.len() as u8);
+        btc.extend_from_slice(&script);
+        btc.extend_from_slice(&[0, 0, 0, 0]); // locktime
+        format!("0x{}", encode_hex(&btc))
+    }
+
     #[test]
     #[should_panic(expected = "ERR_BTC_UNAPPROVED_OUTPUT_SCRIPT")]
     fn blocks_unapproved_bitcoin_script() {
         let mut fw = setup_firewall();
-        let mut btc = vec![1, 0, 0, 0, 0, 1];
-        btc.extend_from_slice(&20_000u64.to_le_bytes());
-        btc.push(22);
-        btc.extend_from_slice(&decode_hex("00149999999999999999999999999999999999999999"));
-        btc.extend_from_slice(&[0, 0, 0, 0]);
-        fw.verify_and_sign_btc(format!("0x{}", encode_hex(&btc)), "btc-evil".into());
+        let raw_hex = build_btc_raw_hex(20_000, "00149999999999999999999999999999999999999999");
+        fw.verify_and_sign_btc(raw_hex, "btc-evil".into());
     }
 
     #[test]
@@ -1052,5 +1092,25 @@ mod tests {
 
         let raw_hex = build_eip1559_raw_hex(8453, "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", 0, &calldata);
         fw.verify_and_sign_evm(raw_hex, "tx-increase-allowance-max".into());
+    }
+
+    #[test]
+    #[should_panic(expected = "ERR_DAILY_BTC_CAP_EXCEEDED")]
+    fn enforces_daily_bitcoin_satoshi_cap() {
+        let mut fw = setup_firewall();
+        let valid_script = "00141111111111111111111111111111111111111111";
+        for i in 0..6 {
+            let raw_hex = build_btc_raw_hex(95_000, valid_script);
+            fw.verify_and_sign_btc(raw_hex, format!("btc-cap-{i}"));
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "ERR_INVALID_RAW_TX: btc locktime/trailing byte mismatch")]
+    fn blocks_btc_trailing_byte_smuggling() {
+        let mut fw = setup_firewall();
+        let mut raw_hex = build_btc_raw_hex(20_000, "00141111111111111111111111111111111111111111");
+        raw_hex.push_str("deadbeef");
+        fw.verify_and_sign_btc(raw_hex, "btc-trailing".into());
     }
 }

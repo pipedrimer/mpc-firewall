@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { decodeUnsignedBitcoinTx } from '../decoders/btcDecoder.js';
 import { decodeUnsignedEvmTx } from '../decoders/evmDecoder.js';
@@ -17,6 +18,7 @@ interface PersistedState {
   policy: FirewallPolicy;
   dailyTokenSpentUnits: string;
   dailyNativeSpentWei: string;
+  dailyBtcSatsSpent: string;
   processedDigests: string[];
   history: FirewallEvaluationRecord[];
 }
@@ -29,19 +31,60 @@ export interface InspectTxInput {
   strictLiveTee?: boolean;
 }
 
+function isFsPermissionError(err: unknown): boolean {
+  const code = (err as { code?: string })?.code;
+  return code === 'EROFS' || code === 'EACCES' || code === 'EPERM';
+}
+
+function createInitialState(): PersistedState {
+  return {
+    policy: getDefaultFirewallPolicy(),
+    dailyTokenSpentUnits: '0',
+    dailyNativeSpentWei: '0',
+    dailyBtcSatsSpent: '0',
+    processedDigests: [],
+    history: []
+  };
+}
+
 export class FirewallService {
-  private readonly dataFile: string;
+  private dataFile: string | null;
+  private memoryState: PersistedState | null = null;
   private readonly forceLocalEnclave: boolean;
   private lockChain: Promise<void> = Promise.resolve();
 
   constructor(options?: { dataDir?: string; forceLocalEnclave?: boolean }) {
-    const dir =
+    const isServerless = Boolean(
+      process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.LAMBDA_TASK_ROOT
+    );
+    const requestedDir =
       options?.dataDir ||
-      process.env.MPC_FIREWALL_DATA_DIR ||
-      path.join(process.cwd(), '.mpc-firewall-data');
-    fs.mkdirSync(dir, { recursive: true });
-    this.dataFile = path.join(dir, 'state.json');
+      (!isServerless ? process.env.MPC_FIREWALL_DATA_DIR?.trim() : undefined) ||
+      (isServerless
+        ? path.join(os.tmpdir(), 'mpc-firewall-data')
+        : path.join(process.cwd(), '.mpc-firewall-data'));
+
+    this.dataFile = this.resolveWritableDataFile(requestedDir);
     this.forceLocalEnclave = Boolean(options?.forceLocalEnclave);
+  }
+
+  private resolveWritableDataFile(preferredDir: string): string | null {
+    const candidates = [preferredDir, path.join(os.tmpdir(), 'mpc-firewall-data')];
+    for (const dir of candidates) {
+      try {
+        fs.mkdirSync(dir, { recursive: true });
+        const probe = path.join(dir, `.probe.${process.pid}.${crypto.randomBytes(3).toString('hex')}`);
+        fs.writeFileSync(probe, 'ok', 'utf8');
+        fs.unlinkSync(probe);
+        return path.join(dir, 'state.json');
+      } catch (err) {
+        if (!isFsPermissionError(err)) {
+          // Unexpected error; continue trying tmpdir or memory fallback
+        }
+      }
+    }
+    this.memoryState = createInitialState();
+    return null;
   }
 
   private async withLock<T>(fn: () => Promise<T> | T): Promise<T> {
@@ -59,14 +102,12 @@ export class FirewallService {
   }
 
   private readState(): PersistedState {
+    if (!this.dataFile) {
+      if (!this.memoryState) this.memoryState = createInitialState();
+      return this.memoryState;
+    }
     if (!fs.existsSync(this.dataFile)) {
-      const initial: PersistedState = {
-        policy: getDefaultFirewallPolicy(),
-        dailyTokenSpentUnits: '0',
-        dailyNativeSpentWei: '0',
-        processedDigests: [],
-        history: []
-      };
+      const initial = createInitialState();
       this.writeState(initial);
       return initial;
     }
@@ -76,15 +117,27 @@ export class FirewallService {
       policy: { ...getDefaultFirewallPolicy(), ...(parsed.policy ?? {}) },
       dailyTokenSpentUnits: parsed.dailyTokenSpentUnits ?? '0',
       dailyNativeSpentWei: parsed.dailyNativeSpentWei ?? '0',
+      dailyBtcSatsSpent: parsed.dailyBtcSatsSpent ?? '0',
       processedDigests: parsed.processedDigests ?? [],
       history: parsed.history ?? []
     };
   }
 
   private writeState(state: PersistedState): void {
-    const tmpFile = `${this.dataFile}.${process.pid}.${crypto.randomBytes(4).toString('hex')}.tmp`;
-    fs.writeFileSync(tmpFile, JSON.stringify(state, null, 2), 'utf8');
-    fs.renameSync(tmpFile, this.dataFile);
+    this.memoryState = state;
+    if (!this.dataFile) return;
+    try {
+      const tmpFile = `${this.dataFile}.${process.pid}.${crypto.randomBytes(4).toString('hex')}.tmp`;
+      fs.writeFileSync(tmpFile, JSON.stringify(state, null, 2), 'utf8');
+      fs.renameSync(tmpFile, this.dataFile);
+    } catch (err) {
+      if (isFsPermissionError(err)) {
+        // Degrade cleanly to in-memory persistence if runtime turns read-only
+        this.dataFile = null;
+        return;
+      }
+      throw err;
+    }
   }
 
   getPolicy(): FirewallPolicy {
@@ -110,14 +163,12 @@ export class FirewallService {
     return this.readState().dailyNativeSpentWei;
   }
 
+  getDailyBtcSatsSpent(): string {
+    return this.readState().dailyBtcSatsSpent;
+  }
+
   resetDemoState(): PersistedState {
-    const fresh: PersistedState = {
-      policy: getDefaultFirewallPolicy(),
-      dailyTokenSpentUnits: '0',
-      dailyNativeSpentWei: '0',
-      processedDigests: [],
-      history: []
-    };
+    const fresh = createInitialState();
     this.writeState(fresh);
     return fresh;
   }
@@ -136,7 +187,8 @@ export class FirewallService {
         decoded,
         policy,
         state.dailyTokenSpentUnits,
-        state.dailyNativeSpentWei
+        state.dailyNativeSpentWei,
+        state.dailyBtcSatsSpent
       );
 
       if (state.processedDigests.includes(decoded.sighashPayloadHex)) {
@@ -214,6 +266,10 @@ export class FirewallService {
           state.dailyTokenSpentUnits = (BigInt(state.dailyTokenSpentUnits) + addedTokens).toString();
           state.dailyNativeSpentWei = (
             BigInt(state.dailyNativeSpentWei) + BigInt(decoded.valueWei) + maxGasFeeWei
+          ).toString();
+        } else if (decoded.kind === 'bitcoin') {
+          state.dailyBtcSatsSpent = (
+            BigInt(state.dailyBtcSatsSpent) + BigInt(decoded.totalOutputSats)
           ).toString();
         }
       } else if (decision.outcome === 'ESCALATE_TO_DAO') {

@@ -12,7 +12,7 @@
     "build": "pnpm --filter @mpc-firewall/core build && pnpm --filter @mpc-firewall/web build",
     "start": "pnpm --filter @mpc-firewall/web start",
     "test": "pnpm --filter @mpc-firewall/core test",
-    "typecheck": "pnpm --filter @mpc-firewall/core typecheck && pnpm --filter @mpc-firewall/web typecheck",
+    "typecheck": "pnpm --filter @mpc-firewall/core build && pnpm --filter @mpc-firewall/web typecheck",
     "verify:judge": "node scripts/judge-demo.mjs",
     "test:e2e": "node scripts/test-e2e-http.mjs"
   }

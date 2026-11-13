@@ -2,6 +2,9 @@
 
 **Zero-blind-signing RLP, EVM ABI calldata, nested `multicall`, and Bitcoin raw-transaction firewall for NEAR Chain Signatures (`v1.signer`).**
 
+- **Live Web Console:** [https://mpc-firewall.netlify.app](https://mpc-firewall.netlify.app)
+- **License:** [MIT](./LICENSE)
+
 ---
 
 ## 1. What Problem It Solves (Not Already Solved on NEAR)
@@ -38,11 +41,11 @@ flowchart LR
 
 | Track ID | NEAR Features & Implemented Capabilities |
 | :--- | :--- |
-| `security` | Contract-owned MPC path, deterministic RLP/ABI/BTC firewall, Function Call Key blind-signing mitigation, nested `multicall` unwrapping, NEAR AI TEE verification. |
-| `defi` | **Chain Signatures** (`v1.signer` / `v1.signer-prod.testnet`) protection for DeFi `approve` / `multicall` / swaps + **NEAR Intents** 1Click quote integration. |
-| `agents` | Safe cross-chain agent execution on Base/Arbitrum/Bitcoin without handing over unconstrained MPC signing authority. |
-| `privacy` | **NEAR AI Cloud** (`@nearai/inference-sdk`) private intent-vs-calldata audit + **Confidential Intents** (`confidentiality: "advanced"`) quote support. |
-| `social` | **SputnikDAO / Trezu** `add_proposal` escalation for transactions exceeding autonomous limits. |
+| `security` | Contract-owned MPC path, deterministic RLP/ABI/BTC firewall, Function Call Key blind-signing mitigation, nested `multicall` unwrapping, daily native/token/satoshi spend caps, and NEAR AI TEE verification. |
+| `agents` | Safe cross-chain agent execution on Base/Arbitrum/Bitcoin without handing over unconstrained `v1.signer` signing authority. |
+| `privacy` | **NEAR AI Cloud** (`@nearai/inference-sdk`) private intent-vs-calldata audit (with honest `local-verifiable-enclave` semantic fallback when `NEARAI_API_KEY` is unset) + **NEAR Intents** 1Click quote integration (`confidentiality` mode & live mainnet dry quotes). |
+
+*Additional ecosystem integrations implemented in the workflow:* **Trezu / SputnikDAO** `add_proposal` escalation payloads for transactions exceeding autonomous limits, and live NEAR Testnet RPC inspection (`v1.signer-prod.testnet`).
 
 ---
 
@@ -61,7 +64,7 @@ flowchart LR
    pnpm test
    pnpm build
    ```
-   **See:** All TypeScript packages (`@mpc-firewall/core`, `@mpc-firewall/web`) compile cleanly and all 18 tests across 5 suites pass (`btcDecoder.test.ts`, `evmDecoder.test.ts`, `firewallEngine.test.ts`, `firewallService.test.ts`, `hardening.test.ts`).
+   **See:** All TypeScript packages (`@mpc-firewall/core`, `@mpc-firewall/web`) compile cleanly and all 24 tests across 5 suites pass (`btcDecoder.test.ts`, `evmDecoder.test.ts`, `firewallEngine.test.ts`, `firewallService.test.ts`, `hardening.test.ts`).
 
 ### Step B: Run Deterministic CLI Judge Suite & HTTP E2E Suite
 2. **Do:**
@@ -105,11 +108,13 @@ When deploying beyond local evaluation, set these flags in `.env`:
 
 ---
 
-## 6. Repository Structure
+## 6. Repository Structure & Disclosures (`Q-005`)
 
-- `contracts/mpc-firewall/src/lib.rs` — Rust NEAR smart contract (`near-sdk = "=5.12.0"`) with on-chain RLP, ABI, `multicall`, and Bitcoin decoders + unit tests (`cargo test`, requires `link.exe` on Windows or `cargo near build` on Linux/macOS/Docker).
-- `packages/core/` — Shared TypeScript decoders, policy engine, NEAR AI Cloud (`@nearai/inference-sdk/node`), NEAR Intents 1Click, NEAR RPC, OutLayer/DAO payload builders, and 4 test suites.
-- `apps/web/` — Next.js App Router API routes & interactive Security Operations Console.
+- `contracts/mpc-firewall/src/lib.rs` — Rust NEAR smart contract (`near-sdk = "=5.12.0"`) with on-chain RLP, ABI, `multicall`, and Bitcoin output/daily-satoshi decoders + unit tests (`cargo test` and `wasm32-unknown-unknown` verified via [`.github/workflows/ci.yml`](./.github/workflows/ci.yml)). *Note: the TypeScript app and Rust contract were built as a clean-room hackathon prototype; `mpc-firewall.testnet` requires final `.wasm` deployment with a funded NEAR Testnet key, and Bitcoin SegWit broadcast requires per-input BIP-143 preimages beyond the unsigned double-SHA256 transaction hash.*
+- `packages/core/` — Shared TypeScript decoders, policy engine, NEAR AI Cloud (`@nearai/inference-sdk/node`), NEAR Intents 1Click, NEAR RPC, OutLayer/DAO payload builders, and 5 test suites (24 tests).
+- `apps/web/` — Next.js App Router API routes & interactive Security Operations Console (uses `ethers` for EIP-1559/ABI encoding, `lucide-react`, and `@nearai/inference-sdk`).
+- `.github/workflows/ci.yml` — Automated Ubuntu CI running `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm verify:judge`, `pnpm test:e2e`, `cargo test --locked`, and `cargo build --target wasm32-unknown-unknown --release`.
 - `scripts/judge-demo.mjs` — CLI verification script.
 - `scripts/validate-submission.mjs` — Validates `submission-payload.json` against `HACKATHON.md`.
 - `SUBMISSION_CHECKLIST.md`, `submission-template.json`, `X_DEMO_POST_DRAFT.md` — Human-reviewed submission packaging.
+- **Libraries & AI Tooling Disclosure:** Built from scratch during this hackathon using `near-sdk`, `ethers`, `next`, `zod`, `@nearai/inference-sdk`, and AI coding assistance (for scaffolding, test generation, interactive 3D/SVG story UI components, and security audit hardening).

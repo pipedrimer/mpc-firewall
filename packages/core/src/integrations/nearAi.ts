@@ -13,7 +13,87 @@ export interface TeeAuditInput {
   strictLiveTee?: boolean;
 }
 
+const CHAIN_KEYWORDS: Array<{ regex: RegExp; expectedChainId: number; label: string }> = [
+  { regex: /\bethereum(\s+mainnet)?\b/i, expectedChainId: 1, label: 'Ethereum Mainnet (1)' },
+  { regex: /\bbase(\s+sepolia)?\b/i, expectedChainId: 8453, label: 'Base (8453)' },
+  { regex: /\barbitrum\b/i, expectedChainId: 42161, label: 'Arbitrum (42161)' },
+  { regex: /\boptimism\b/i, expectedChainId: 10, label: 'Optimism (10)' },
+  { regex: /\bpolygon\b/i, expectedChainId: 137, label: 'Polygon (137)' }
+];
+
+function detectIntentCalldataMismatch(agentIntent: string, decoded: DecodedForeignTx): string | null {
+  const intent = agentIntent.trim();
+
+  if (decoded.kind === 'bitcoin') {
+    if (/\b(ethereum|base|arbitrum|erc-?20|usdc|uniswap)\b/i.test(intent)) {
+      return 'Intent references EVM/ERC-20 assets, but raw transaction bytes encode a Bitcoin UTXO transaction.';
+    }
+    const satsMatch = intent.match(/\b([\d,]+)\s*sats?\b/i);
+    if (satsMatch) {
+      const claimedSats = BigInt(satsMatch[1].replace(/,/g, ''));
+      const actualSats = BigInt(decoded.totalOutputSats);
+      if (actualSats > claimedSats) {
+        return `Intent states ${claimedSats.toString()} sats, but raw Bitcoin outputs send ${actualSats.toString()} sats.`;
+      }
+    }
+    return null;
+  }
+
+  // 1. Cross-chain mismatch check
+  for (const entry of CHAIN_KEYWORDS) {
+    if (entry.regex.test(intent)) {
+      const baseSepoliaOk = entry.expectedChainId === 8453 && decoded.chainId === 84532;
+      if (decoded.chainId !== entry.expectedChainId && !baseSepoliaOk) {
+        return `Intent claims ${entry.label}, but RLP encodes chainId ${decoded.chainId}.`;
+      }
+    }
+  }
+  if (/\bbitcoin\b/i.test(intent)) {
+    return 'Intent references Bitcoin, but raw transaction encodes an EVM transaction.';
+  }
+
+  // 2. Native ETH vs ERC-20 token contradiction
+  const claimsEth = /\b(\d+(?:\.\d+)?)\s*eth\b/i.test(intent);
+  const claimsUsdc = /\b(\d+(?:\.\d+)?)\s*usdc\b/i.test(intent);
+  if (claimsEth && decoded.valueWei === '0' && decoded.rootCall.action !== 'NATIVE_TRANSFER') {
+    return `Intent states an ETH transfer, but decoded calldata executes ${decoded.rootCall.action} with 0 native wei.`;
+  }
+  if (claimsUsdc && decoded.rootCall.action === 'NATIVE_TRANSFER') {
+    return 'Intent states a USDC payment, but raw transaction executes a native ETH transfer with empty calldata.';
+  }
+
+  // 3. Approval / NFT handover disguised as routine payout or claim
+  const hasApproval = decoded.flattenedCalls.some(
+    (c) =>
+      c.action === 'ERC20_APPROVE' ||
+      c.action === 'ERC20_PERMIT' ||
+      c.action === 'NFT_SET_APPROVAL_FOR_ALL'
+  );
+  if (hasApproval && !/\b(approv|allowance|permit|revoke)\b/i.test(intent)) {
+    return 'Intent describes a non-approval action, but calldata invokes token/NFT approval authority.';
+  }
+
+  // 4. Stated USDC amount vs decoded token outflow
+  const usdcMatch = intent.match(/\b(\d+(?:\.\d+)?)\s*usdc\b/i);
+  if (usdcMatch) {
+    const claimedFloat = Number(usdcMatch[1]);
+    if (Number.isFinite(claimedFloat)) {
+      const claimedUnits = BigInt(Math.round(claimedFloat * 1_000_000));
+      const actualUnits = decoded.flattenedCalls.reduce(
+        (acc, c) => acc + BigInt(c.tokenAmount ?? '0'),
+        0n
+      );
+      if (actualUnits > claimedUnits * 2n || (claimedUnits > 0n && actualUnits === 0n)) {
+        return `Intent states ${claimedFloat} USDC, but decoded calldata moves ${Number(actualUnits) / 1_000_000} USDC.`;
+      }
+    }
+  }
+
+  return null;
+}
+
 function summarizeDeterministicRisk(
+  agentIntent: string,
   decoded: DecodedForeignTx,
   decision: FirewallDecision
 ): { riskLevel: TeeIntentAudit['riskLevel']; summary: string } {
@@ -23,6 +103,15 @@ function summarizeDeterministicRisk(
       summary: `TEE audit flags critical risk: ${decision.codes.join(', ')}. ${decision.reasons[0] ?? ''}`.trim()
     };
   }
+
+  const mismatch = detectIntentCalldataMismatch(agentIntent, decoded);
+  if (mismatch) {
+    return {
+      riskLevel: 'CRITICAL',
+      summary: `Intent vs. decoded calldata mismatch detected: ${mismatch}`
+    };
+  }
+
   if (decision.outcome === 'ESCALATE_TO_DAO') {
     return {
       riskLevel: 'MEDIUM',
@@ -142,7 +231,11 @@ export async function runConfidentialTeeAudit(input: TeeAuditInput): Promise<Tee
     }
   }
 
-  const { riskLevel, summary } = summarizeDeterministicRisk(input.decoded, input.deterministicDecision);
+  const { riskLevel, summary } = summarizeDeterministicRisk(
+    input.agentIntent,
+    input.decoded,
+    input.deterministicDecision
+  );
   const responseId = `local_tee_${crypto.randomBytes(8).toString('hex')}`;
   const canonicalMsg = `${nonce}|${payloadDigestSha256}|${riskLevel}|${responseId}`;
   const signatureHex = crypto.sign(null, Buffer.from(canonicalMsg, 'utf8'), localEnclavePrivKey).toString('hex');

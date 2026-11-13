@@ -59,9 +59,9 @@ const STORY_MAP: Record<string, ScenarioStoryMeta> = {
     plainSummary: 'Tricked assistant hides an unlimited token approval inside a routine rebate claim.',
     assistantClaim: 'Claim routine gas rebate on Base.',
     hiddenReality: 'Unlimited power-of-attorney check (MaxUint256) to a known drainer.',
-    withoutResult: 'Entire $142,500 treasury drained',
+    withoutResult: 'Unlimited USDC allowance granted to drainer',
     withResult: '$0.00 lost — blocked before reaching v1.signer',
-    dollarBadge: '$142,500 Saved',
+    dollarBadge: 'Unlimited Drain Prevented',
     illustration: '/illustrations/blank-check.jpg',
     networkLabel: 'Base • 8453'
   },
@@ -72,9 +72,9 @@ const STORY_MAP: Record<string, ScenarioStoryMeta> = {
     plainSummary: 'Smuggles a wallet-draining approval inside a bundle of harmless transfers.',
     assistantClaim: 'Execute routine router batch transfer (5 USDC).',
     hiddenReality: 'Outer box transfers 5 USDC; inner nesting doll grants infinite access.',
-    withoutResult: 'Surface filters fooled — $142,500 drained',
+    withoutResult: 'Surface filters fooled — unlimited USDC allowance drained',
     withResult: 'Unwrapped 2 layers deep & blocked at $0.00',
-    dollarBadge: '$142,500 Saved',
+    dollarBadge: 'Unlimited Drain Prevented',
     illustration: '/illustrations/nesting-dolls.jpg',
     networkLabel: 'Base Router • 8453'
   },

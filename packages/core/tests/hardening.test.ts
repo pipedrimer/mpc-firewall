@@ -5,6 +5,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { ethers } from 'ethers';
 import {
+  APPROVED_BTC_P2WPKH_SCRIPT,
+  APPROVED_VENDOR_ADDRESS,
+  buildSampleUnsignedBtcTx,
   decodeUnsignedEvmTx,
   evaluateFirewallPolicy,
   FirewallService,
@@ -202,6 +205,93 @@ describe('hardening: fail-closed TEE, Permit2/ERC2612, daily native cap, concurr
       }
     );
     assert.equal(validHeader.authorized, true);
+  });
+
+  it('flags intent-vs-calldata semantic mismatch in local TEE enclave mode', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mpc-fw-tee-mismatch-'));
+    const service = new FirewallService({ dataDir: tmpDir, forceLocalEnclave: true });
+    try {
+      const tx = ethers.Transaction.from({
+        type: 2,
+        chainId: 8453,
+        nonce: 1,
+        maxFeePerGas: ethers.parseUnits('1', 'gwei'),
+        maxPriorityFeePerGas: ethers.parseUnits('0.1', 'gwei'),
+        gasLimit: 21_000n,
+        to: APPROVED_VENDOR_ADDRESS,
+        value: ethers.parseEther('0.01'),
+        data: '0x'
+      });
+
+      const record = await service.inspectAndDispatch({
+        chainKind: 'evm',
+        rawUnsignedHex: tx.unsignedSerialized,
+        agentIntent: 'Transfer 50 USDC on Ethereum Mainnet to vendor.'
+      });
+
+      assert.equal(record.teeAudit.riskLevel, 'CRITICAL');
+      assert.equal(record.decision.outcome, 'BLOCKED');
+      assert.ok(record.decision.codes.includes('ERR_TEE_CRITICAL_RISK'));
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('enforces cumulative daily Bitcoin satoshi cap across approved payouts', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mpc-fw-btc-cap-'));
+    const service = new FirewallService({ dataDir: tmpDir, forceLocalEnclave: true });
+    try {
+      for (let i = 1; i <= 5; i += 1) {
+        const tx = buildSampleUnsignedBtcTx([
+          { valueSats: 95_000n + BigInt(i), scriptPubKeyHex: APPROVED_BTC_P2WPKH_SCRIPT }
+        ]);
+        const res = await service.inspectAndDispatch({
+          chainKind: 'bitcoin',
+          rawUnsignedHex: tx,
+          agentIntent: `Pay ${95_000 + i} sats to approved BTC vendor.`
+        });
+        assert.equal(res.decision.outcome, 'APPROVED_FOR_MPC_SIGN');
+      }
+
+      const tx6 = buildSampleUnsignedBtcTx([
+        { valueSats: 95_006n, scriptPubKeyHex: APPROVED_BTC_P2WPKH_SCRIPT }
+      ]);
+      const r6 = await service.inspectAndDispatch({
+        chainKind: 'bitcoin',
+        rawUnsignedHex: tx6,
+        agentIntent: 'Pay 95006 sats to approved BTC vendor.'
+      });
+      assert.equal(r6.decision.outcome, 'BLOCKED');
+      assert.ok(r6.decision.codes.includes('ERR_DAILY_BTC_CAP_EXCEEDED'));
+      assert.equal(service.getDailyBtcSatsSpent(), String(95_001 + 95_002 + 95_003 + 95_004 + 95_005));
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('routes FirewallService storage to os.tmpdir() cleanly when NETLIFY env is set', async () => {
+    const prevNetlify = process.env.NETLIFY;
+    process.env.NETLIFY = 'true';
+    try {
+      const service = new FirewallService({ dataDir: '/nonexistent-ro-root/.mpc-firewall-data', forceLocalEnclave: true });
+      service.resetDemoState();
+      const rawBtc = buildSampleUnsignedBtcTx([
+        { valueSats: 10_000n, scriptPubKeyHex: APPROVED_BTC_P2WPKH_SCRIPT }
+      ]);
+      const record = await service.inspectAndDispatch({
+        chainKind: 'bitcoin',
+        rawUnsignedHex: rawBtc,
+        agentIntent: 'Pay 10000 sats to approved BTC vendor.'
+      });
+      assert.equal(record.decision.outcome, 'APPROVED_FOR_MPC_SIGN');
+      service.resetDemoState();
+    } finally {
+      if (prevNetlify === undefined) {
+        delete process.env.NETLIFY;
+      } else {
+        process.env.NETLIFY = prevNetlify;
+      }
+    }
   });
 });
 
