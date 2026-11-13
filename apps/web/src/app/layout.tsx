@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 
@@ -15,6 +15,12 @@ const jetbrains = JetBrains_Mono({
   variable: '--font-jetbrains',
   display: 'swap'
 });
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5
+};
 
 export const metadata: Metadata = {
   title: 'MpcFirewall — X-Ray Security Gate for NEAR AI Assistants',

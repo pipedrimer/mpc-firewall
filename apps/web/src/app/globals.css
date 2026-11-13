@@ -108,3 +108,12 @@ button:active:not(:disabled) {
     linear-gradient(to bottom, rgba(31, 60, 255, 0.045) 1px, transparent 1px);
   background-size: 28px 28px;
 }
+
+/* Hide scrollbar on mobile horizontal docks */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

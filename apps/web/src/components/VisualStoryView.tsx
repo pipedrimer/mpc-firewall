@@ -212,25 +212,25 @@ export function VisualStoryView({
             01 / ZERO BLIND SIGNING FOR NEAR AGENTS
           </div>
 
-          <h1 className="text-4xl font-extrabold tracking-[-0.04em] leading-[1.02] text-[#0B0F17] sm:text-5xl xl:text-[52px]">
+          <h1 className="text-3xl font-extrabold tracking-[-0.04em] leading-[1.04] text-[#0B0F17] sm:text-5xl xl:text-[52px]">
             Never let your AI assistant{' '}
             <span className="bg-gradient-to-r from-[#1F3CFF] via-[#2563EB] to-[#059669] bg-clip-text text-transparent">
               sign a sealed envelope.
             </span>
           </h1>
 
-          <p className="max-w-[46ch] text-base leading-relaxed text-[#4A5568] sm:text-lg">
+          <p className="max-w-[46ch] text-sm leading-relaxed text-[#4A5568] sm:text-lg">
             Before your AI spends money across Ethereum, Base, or Bitcoin, MpcFirewall X-rays the
             raw transaction package on NEAR and blocks hidden traps cold.
           </p>
 
           <div className="space-y-3 pt-1">
-            <div className="flex flex-wrap items-center gap-3.5">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3.5">
               <button
                 type="button"
                 onClick={onInspect}
                 disabled={loading}
-                className="btn-roll group inline-flex cursor-pointer items-center gap-2.5 rounded-full bg-gradient-to-r from-[#1F3CFF] to-[#1528B0] px-7 py-3.5 text-sm font-bold text-white shadow-[0_14px_30px_-8px_rgba(31,60,255,0.5)] hover:from-[#0B0F17] hover:to-[#1E293B] disabled:opacity-75"
+                className="btn-roll group inline-flex w-full sm:w-auto cursor-pointer items-center justify-center gap-2.5 rounded-full bg-gradient-to-r from-[#1F3CFF] to-[#1528B0] px-6 py-3.5 text-sm font-bold text-white shadow-[0_14px_30px_-8px_rgba(31,60,255,0.5)] hover:from-[#0B0F17] hover:to-[#1E293B] disabled:opacity-75"
               >
                 <span className="btn-roll-inner">
                   <span>
@@ -244,7 +244,7 @@ export function VisualStoryView({
 
               <a
                 href="#scenarios"
-                className="inline-flex items-center gap-1.5 rounded-full border border-[#DCE2EE] bg-white px-5 py-3.5 text-sm font-bold text-[#0B0F17] shadow-2xs hover:border-[#1F3CFF] hover:text-[#1F3CFF]"
+                className="inline-flex w-full sm:w-auto items-center justify-center gap-1.5 rounded-full border border-[#DCE2EE] bg-white px-5 py-3.5 text-sm font-bold text-[#0B0F17] shadow-2xs hover:border-[#1F3CFF] hover:text-[#1F3CFF]"
               >
                 <span>Explore All 7 Scenarios</span>
                 <ArrowDownRight className="h-4 w-4 text-[#1F3CFF]" />
@@ -265,7 +265,7 @@ export function VisualStoryView({
                           : 'bg-[#059669]'
                   }`}
                 />
-                <span className="font-mono text-[11px]">
+                <span className="font-mono text-[10px] sm:text-[11px]">
                   {loading
                     ? `Unpacking RLP/ABI bytes & verifying policy on NEAR…`
                     : `Scan #${scanPulseId} Complete • ${activeMeta.humanTitle} → ${record?.decision.outcome ?? 'VERIFIED'}${lastScanDurationMs ? ` (${lastScanDurationMs}ms)` : ''}`}
@@ -275,25 +275,25 @@ export function VisualStoryView({
           </div>
 
           {/* 3-Color Telemetry Strip */}
-          <div className="grid grid-cols-3 gap-2.5 pt-2">
-            <div className="rounded-2xl border border-[#C7D2FE] bg-[#EEF2FF]/80 p-3">
-              <div className="font-mono text-sm font-extrabold text-[#1F3CFF]">100% Open</div>
-              <div className="mt-0.5 text-[11px] font-medium text-[#374151]">
-                RLP, ABI &amp; BTC Bytes
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5 pt-2">
+            <div className="rounded-xl sm:rounded-2xl border border-[#C7D2FE] bg-[#EEF2FF]/80 p-2 sm:p-3 text-center sm:text-left">
+              <div className="font-mono text-xs sm:text-sm font-extrabold text-[#1F3CFF]">100% Open</div>
+              <div className="mt-0.5 text-[10px] sm:text-[11px] font-medium text-[#374151]">
+                RLP &amp; BTC Bytes
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[#A7F3D0] bg-[#ECFDF5]/85 p-3">
-              <div className="font-mono text-sm font-extrabold text-[#059669]">$0.00 Lost</div>
-              <div className="mt-0.5 text-[11px] font-medium text-[#065F46]">
-                5 Drainer Traps Blocked
+            <div className="rounded-xl sm:rounded-2xl border border-[#A7F3D0] bg-[#ECFDF5]/85 p-2 sm:p-3 text-center sm:text-left">
+              <div className="font-mono text-xs sm:text-sm font-extrabold text-[#059669]">$0.00 Lost</div>
+              <div className="mt-0.5 text-[10px] sm:text-[11px] font-medium text-[#065F46]">
+                5 Traps Blocked
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[#FDE68A] bg-[#FFFBEB]/90 p-3">
-              <div className="font-mono text-sm font-extrabold text-[#D97706]">3 Lanes</div>
-              <div className="mt-0.5 text-[11px] font-medium text-[#92400E]">
-                Auto, Team Vote &amp; Block
+            <div className="rounded-xl sm:rounded-2xl border border-[#FDE68A] bg-[#FFFBEB]/90 p-2 sm:p-3 text-center sm:text-left">
+              <div className="font-mono text-xs sm:text-sm font-extrabold text-[#D97706]">3 Lanes</div>
+              <div className="mt-0.5 text-[10px] sm:text-[11px] font-medium text-[#92400E]">
+                Auto, Vote, Block
               </div>
             </div>
           </div>

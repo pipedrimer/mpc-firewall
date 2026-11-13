@@ -550,6 +550,8 @@ export function InteractiveXRayStage({
   }
 
   function handleStagePointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    // Only apply 3D mouse tilt on mouse/pen to keep touchscreens completely steady
+    if (e.pointerType === 'touch') return;
     const el = stageRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
@@ -659,10 +661,10 @@ export function InteractiveXRayStage({
           {/* =================================================================
               TOP INSTRUMENT BAR: ACTIVE SCENARIO + 0%–100% APERTURE CONTROLS
              ================================================================= */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#DCE2EE] bg-gradient-to-r from-[#0B0F17] via-[#111827] to-[#1E293B] px-5 py-3 text-white">
-            <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 border-b border-[#DCE2EE] bg-gradient-to-r from-[#0B0F17] via-[#111827] to-[#1E293B] px-3.5 sm:px-5 py-2.5 sm:py-3 text-white">
+            <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
               <span
-                className={`flex h-6 w-6 items-center justify-center rounded-full font-mono text-[11px] font-bold text-white ${
+                className={`flex h-5 w-5 sm:h-6 sm:w-6 shrink-0 items-center justify-center rounded-full font-mono text-[10px] sm:text-[11px] font-bold text-white ${
                   isBlocked
                     ? 'bg-[#E11D48]'
                     : isEscalated
@@ -672,32 +674,32 @@ export function InteractiveXRayStage({
               >
                 {meta.index}
               </span>
-              <span className="text-sm font-bold tracking-tight text-white">
+              <span className="truncate text-xs sm:text-sm font-bold tracking-tight text-white">
                 {isTamperedSimulation
                   ? 'The $25 Server Bill (Poisoned with Hidden Trap!)'
                   : meta.humanTitle}
               </span>
-              <span className="hidden rounded-full border border-white/15 bg-white/10 px-2.5 py-0.5 font-mono text-[11px] text-white/80 sm:inline-block">
+              <span className="hidden rounded-full border border-white/15 bg-white/10 px-2 py-0.5 font-mono text-[10px] text-white/80 md:inline-block">
                 {meta.networkLabel}
               </span>
             </div>
 
             {/* Quick-Snap 0% / Split / 100% Buttons + Live Percentage */}
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center rounded-full border border-white/15 bg-white/5 p-0.5 text-[11px]">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="flex items-center rounded-full border border-white/15 bg-white/5 p-0.5 text-[10px] sm:text-[11px]">
                 <button
                   type="button"
                   onClick={() => {
                     apertureRef.current = 0;
                     setXrayAperturePct(0);
                   }}
-                  className={`rounded-full px-2.5 py-0.5 font-mono transition-colors ${
+                  className={`rounded-full px-2 sm:px-2.5 py-0.5 font-mono transition-colors ${
                     xrayAperturePct === 0
                       ? 'bg-[#E11D48] font-bold text-white'
                       : 'text-white/70 hover:text-white'
                   }`}
                 >
-                  0% Blind
+                  0%
                 </button>
                 <button
                   type="button"
@@ -705,7 +707,7 @@ export function InteractiveXRayStage({
                     apertureRef.current = 78;
                     setXrayAperturePct(78);
                   }}
-                  className={`rounded-full px-2.5 py-0.5 font-mono transition-colors ${
+                  className={`rounded-full px-2 sm:px-2.5 py-0.5 font-mono transition-colors ${
                     xrayAperturePct > 0 && xrayAperturePct < 100
                       ? 'bg-[#1F3CFF] font-bold text-white'
                       : 'text-white/70 hover:text-white'
@@ -719,19 +721,19 @@ export function InteractiveXRayStage({
                     apertureRef.current = 100;
                     setXrayAperturePct(100);
                   }}
-                  className={`rounded-full px-2.5 py-0.5 font-mono transition-colors ${
+                  className={`rounded-full px-2 sm:px-2.5 py-0.5 font-mono transition-colors ${
                     xrayAperturePct === 100
                       ? 'bg-[#059669] font-bold text-white'
                       : 'text-white/70 hover:text-white'
                   }`}
                 >
-                  100% X-Ray
+                  100%
                 </button>
               </div>
 
-              <div className="flex items-center gap-1.5 rounded-full border border-[#60A5FA]/40 bg-[#1F3CFF]/30 px-3 py-1 text-xs font-semibold text-white">
-                <ScanLine className="h-3.5 w-3.5 text-[#60A5FA]" />
-                <span className="font-mono tabular-nums">X-Ray: {xrayAperturePct}%</span>
+              <div className="flex items-center gap-1 rounded-full border border-[#60A5FA]/40 bg-[#1F3CFF]/30 px-2.5 sm:px-3 py-0.5 sm:py-1 text-[11px] sm:text-xs font-semibold text-white">
+                <ScanLine className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-[#60A5FA]" />
+                <span className="font-mono tabular-nums">{xrayAperturePct}%</span>
               </div>
             </div>
           </div>
@@ -856,10 +858,12 @@ export function InteractiveXRayStage({
             ref={splitViewportRef}
             onPointerDown={(e) => {
               const target = e.target as HTMLElement;
-              if (target.closest('button') || target.closest('canvas')) return;
-              e.currentTarget.setPointerCapture(e.pointerId);
-              draggingSliderRef.current = true;
-              updateApertureFromClientX(e.clientX);
+              if (target.closest('button') || target.closest('canvas') || target.closest('[role="slider"]')) return;
+              if (e.pointerType !== 'touch') {
+                e.currentTarget.setPointerCapture(e.pointerId);
+                draggingSliderRef.current = true;
+                updateApertureFromClientX(e.clientX);
+              }
             }}
             onPointerMove={(e) => {
               if (draggingSliderRef.current) {
@@ -876,21 +880,25 @@ export function InteractiveXRayStage({
                 }
               }
             }}
-            className="relative min-h-[480px] w-full cursor-ew-resize overflow-hidden bg-white"
+            onPointerCancel={() => {
+              draggingSliderRef.current = false;
+            }}
+            style={{ touchAction: 'pan-y' }}
+            className="relative min-h-[480px] w-full overflow-hidden bg-white select-none"
           >
             {/* ===============================================================
                 BASE LAYER (REVEALED BY X-RAY): Interactive 3D Hologram + Anatomy
                =============================================================== */}
             <div className="xray-grid grid min-h-[480px] grid-cols-1 lg:grid-cols-12">
               {/* Left 5 Cols: Interactive 3D Exploded-View Hologram + Illustration */}
-              <div className="relative flex flex-col justify-between border-b border-[#DCE2EE] bg-gradient-to-b from-[#EEF2FF]/80 via-[#F8FAFC] to-white p-5 lg:col-span-5 lg:border-b-0 lg:border-r">
+              <div className="relative flex flex-col justify-between border-b border-[#DCE2EE] bg-gradient-to-b from-[#EEF2FF]/80 via-[#F8FAFC] to-white p-3.5 sm:p-5 lg:col-span-5 lg:border-b-0 lg:border-r">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[#C7D2FE] bg-white px-3 py-1 text-xs font-bold text-[#1F3CFF] shadow-2xs">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[#C7D2FE] bg-white px-2.5 sm:px-3 py-1 text-[11px] sm:text-xs font-bold text-[#1F3CFF] shadow-2xs">
                     <Layers className="h-3.5 w-3.5" />
                     MpcFirewall 3D X-Ray
                   </span>
                   <span className="font-mono text-[10px] font-semibold text-[#4A5568]">
-                    Drag 3D cube to orbit
+                    Touch or drag cube to orbit
                   </span>
                 </div>
 
@@ -898,9 +906,10 @@ export function InteractiveXRayStage({
                 <div className="my-2 overflow-hidden rounded-2xl border border-[#C7D2FE] bg-white/95 shadow-[0_10px_28px_-12px_rgba(31,60,255,0.2)]">
                   <canvas
                     ref={canvasRef}
+                    style={{ touchAction: 'none' }}
                     onPointerDown={(e) => {
                       e.stopPropagation();
-                      e.currentTarget.setPointerCapture(e.pointerId);
+                      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
                       orbitingCanvasRef.current = {
                         active: true,
                         lastX: e.clientX,
@@ -924,12 +933,16 @@ export function InteractiveXRayStage({
                       e.stopPropagation();
                       orbitingCanvasRef.current.active = false;
                       try {
-                        e.currentTarget.releasePointerCapture(e.pointerId);
+                        (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
                       } catch {
                         // Ignore
                       }
                     }}
-                    className="h-[185px] w-full cursor-grab active:cursor-grabbing"
+                    onPointerCancel={(e) => {
+                      e.stopPropagation();
+                      orbitingCanvasRef.current.active = false;
+                    }}
+                    className="h-[185px] w-full cursor-grab active:cursor-grabbing touch-none select-none"
                     aria-label="Interactive 3D exploding transaction cube"
                   />
                 </div>
@@ -1280,7 +1293,7 @@ export function InteractiveXRayStage({
             </div>
 
             {/* ===============================================================
-                DRAGGABLE X-RAY LASER HANDLE
+                DRAGGABLE X-RAY LASER HANDLE (Touch-friendly on mobile & desktop)
                =============================================================== */}
             <div
               role="slider"
@@ -1289,6 +1302,31 @@ export function InteractiveXRayStage({
               aria-valuemin={0}
               aria-valuemax={100}
               aria-valuenow={xrayAperturePct}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+                draggingSliderRef.current = true;
+                updateApertureFromClientX(e.clientX);
+              }}
+              onPointerMove={(e) => {
+                if (draggingSliderRef.current) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  updateApertureFromClientX(e.clientX);
+                }
+              }}
+              onPointerUp={(e) => {
+                draggingSliderRef.current = false;
+                try {
+                  (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+                } catch {
+                  // Ignore
+                }
+              }}
+              onPointerCancel={() => {
+                draggingSliderRef.current = false;
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'ArrowLeft') {
                   const next = Math.min(100, xrayAperturePct + 10);
@@ -1302,10 +1340,11 @@ export function InteractiveXRayStage({
                 }
               }}
               style={{
-                left: `clamp(22px, ${handleLeftPct}%, calc(100% - 22px))`,
-                transform: 'translateX(-50%)'
+                left: `clamp(20px, ${handleLeftPct}%, calc(100% - 20px))`,
+                transform: 'translateX(-50%)',
+                touchAction: 'none'
               }}
-              className="pointer-events-none absolute inset-y-0 z-20 flex w-12 items-center justify-center focus:outline-none"
+              className="absolute inset-y-0 z-20 flex w-14 cursor-ew-resize items-center justify-center focus:outline-none touch-none select-none"
             >
               <div
                 className={`h-full w-[3px] transition-colors ${
@@ -1317,7 +1356,7 @@ export function InteractiveXRayStage({
                 }`}
               />
               <div
-                className={`pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full border-2 border-white text-white shadow-[0_10px_28px_rgba(11,15,23,0.45)] transition-transform hover:scale-110 active:scale-95 ${
+                className={`pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full border-2 border-white text-white shadow-[0_10px_28px_rgba(11,15,23,0.55)] transition-transform hover:scale-110 active:scale-95 touch-none ${
                   isBlocked
                     ? 'bg-[#E11D48]'
                     : isEscalated
@@ -1335,19 +1374,19 @@ export function InteractiveXRayStage({
              ================================================================= */}
           <div className="divide-y divide-[#DCE2EE] border-t border-[#DCE2EE] bg-[#F8FAFC]">
             {/* Row 1: X-Ray Curtain Scrubber */}
-            <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-2 text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4 px-3 sm:px-5 py-2.5 sm:py-2 text-xs">
               <button
                 type="button"
                 onClick={() => {
                   apertureRef.current = 0;
                   setXrayAperturePct(0);
                 }}
-                className="font-mono text-[11px] font-bold text-[#E11D48] hover:underline"
+                className="font-mono text-[10px] sm:text-[11px] font-bold text-[#E11D48] hover:underline shrink-0"
               >
-                &larr; 0% X-Ray (100% Blind Envelope)
+                &larr; 0% Blind
               </button>
 
-              <div className="flex flex-1 items-center gap-3 max-w-xs">
+              <div className="flex flex-1 items-center gap-2 max-w-xs sm:max-w-sm">
                 <input
                   type="range"
                   min={0}
@@ -1359,7 +1398,7 @@ export function InteractiveXRayStage({
                     setXrayAperturePct(next);
                   }}
                   aria-label="Pull X-Ray curtain from 0% to 100%"
-                  className="h-2 w-full cursor-ew-resize appearance-none rounded-lg bg-gradient-to-r from-[#1F3CFF] via-[#059669] to-[#0B0F17] accent-[#1F3CFF]"
+                  className="h-2.5 sm:h-2 w-full cursor-ew-resize appearance-none rounded-lg bg-gradient-to-r from-[#1F3CFF] via-[#059669] to-[#0B0F17] accent-[#1F3CFF] touch-none"
                 />
               </div>
 
@@ -1369,9 +1408,9 @@ export function InteractiveXRayStage({
                   apertureRef.current = 100;
                   setXrayAperturePct(100);
                 }}
-                className="font-mono text-[11px] font-bold text-[#1F3CFF] hover:underline"
+                className="font-mono text-[10px] sm:text-[11px] font-bold text-[#1F3CFF] hover:underline shrink-0"
               >
-                100% X-Ray Reveal &rarr;
+                100% X-Ray &rarr;
               </button>
             </div>
 

@@ -1,0 +1,13 @@
+node_modules
+.next
+apps/web/.next
+packages/core/dist
+target
+contracts/mpc-firewall/target
+docs
+.mpc-firewall-data
+*.log
+*.pptx
+*.zip
+.git
+
