@@ -317,7 +317,7 @@ export function HomeConsole({ initialPresets, initialPolicy }: HomeConsoleProps)
   }
 
   return (
-    <div className="min-h-[100dvh] text-[#0B0F17]">
+    <div className={`min-h-[100dvh] text-[#0B0F17] ${viewMode === 'protocol' ? 'bg-[#F9F9FA]' : 'bg-white'}`}>
       <HeaderStatusBar
         health={health}
         rpc={rpc}
@@ -330,14 +330,16 @@ export function HomeConsole({ initialPresets, initialPolicy }: HomeConsoleProps)
         onChangeViewMode={setViewMode}
       />
 
-      <main className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6 lg:px-8 lg:py-11">
-        {errorMsg && (
-          <div className="mb-6 rounded-xl border border-[#E11D48]/30 bg-[#E11D48]/[0.06] px-4 py-3 text-xs font-medium text-[#E11D48]">
-            {errorMsg}
-          </div>
-        )}
+      {viewMode === 'story' ? (
+        <main className="w-full overflow-x-clip">
+          {errorMsg && (
+            <div className="mx-auto max-w-[1365px] px-4 pt-6 sm:px-8">
+              <div className="rounded-xl border border-[#E11D48]/30 bg-[#E11D48]/[0.06] px-4 py-3 text-xs font-medium text-[#E11D48]">
+                {errorMsg}
+              </div>
+            </div>
+          )}
 
-        {viewMode === 'story' ? (
           <VisualStoryView
             presets={presets}
             selectedPresetId={selectedPresetId}
@@ -354,7 +356,15 @@ export function HomeConsole({ initialPresets, initialPolicy }: HomeConsoleProps)
             lastScanDurationMs={lastScanDurationMs}
             onInspect={handleInspect}
           />
-        ) : (
+        </main>
+      ) : (
+        <main className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6 lg:px-8 lg:py-11">
+          {errorMsg && (
+            <div className="mb-6 rounded-xl border border-[#E11D48]/30 bg-[#E11D48]/[0.06] px-4 py-3 text-xs font-medium text-[#E11D48]">
+              {errorMsg}
+            </div>
+          )}
+
           <div className="space-y-6">
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
               <div className="lg:col-span-3">
@@ -429,8 +439,8 @@ export function HomeConsole({ initialPresets, initialPolicy }: HomeConsoleProps)
               </section>
             )}
           </div>
-        )}
-      </main>
+        </main>
+      )}
     </div>
   );
 }
